@@ -2,7 +2,6 @@ package notifier
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 )
@@ -10,7 +9,6 @@ import (
 // -----------------------------------------------------------------------------
 // LocalNotifier sends notifications to a local channel instead of a network socket.
 type LocalNotifier struct {
-	mu        sync.RWMutex
 	notifChan chan *models.NotifMessage
 }
 
@@ -21,16 +19,11 @@ func NewLocalNotifier() *LocalNotifier {
 
 // -----------------------------------------------------------------------------
 func (ln *LocalNotifier) SetQueue(q chan *models.NotifMessage) {
-	ln.mu.Lock()
-	defer ln.mu.Unlock()
 	ln.notifChan = q
 }
 
 // -----------------------------------------------------------------------------
 func (ln *LocalNotifier) Notify(n *models.NotifMessage) error {
-	ln.mu.RLock()
-	defer ln.mu.RUnlock()
-
 	if ln.notifChan == nil {
 		// Drop or error if no queue bound?
 		// For now, silent drop or error.
@@ -47,6 +40,7 @@ func (ln *LocalNotifier) Notify(n *models.NotifMessage) error {
 
 // -----------------------------------------------------------------------------
 func (ln *LocalNotifier) Close() error {
+	// Needed for interface
 	// We do not close the channel as it is injected (owned by caller).
 	return nil
 }
