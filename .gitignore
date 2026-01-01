@@ -1,0 +1,16 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+bin/
+
+# Logs
+*.log
+
+# Editor
+.vscode/
+.idea/
+
+# Temp
+tmp/
