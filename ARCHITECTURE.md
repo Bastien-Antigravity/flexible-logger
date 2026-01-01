@@ -5,34 +5,50 @@ This document describes the internal design of the Flexible Logger.
 ## Data Flow
 
 ```mermaid
-graph TD
-    App[Application] -->|LogEntry| Engine[LogEngine]
-    Engine -->|Filter| Pool{Level Check}
-    Pool -- Low Level --> Drop["Drop / Return to Pool"]
-    Pool -- High Level --> Sink[Sink Interface]
+flowchart TD
+    %% Styles
+    classDef core fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef sink fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef net fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+    classDef alert fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
+    classDef pool fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+
+    %% Nodes
+    App[Application] -->|LogEntry| Engine(LogEngine):::core
     
-    subgraph Sinks
-        Sink --> Multi[MultiSink]
-        Multi --> Console[ConsoleSink]
-        Multi --> File["WriterSink (File)"]
-        Multi --> Async[AsyncSink]
+    subgraph Core Processing
+        direction TB
+        Engine -->|Filter| Decision{Level Check}:::core
+        Decision -- "Rejected" --> Drop((Drop/Pool)):::pool
+        Decision -- "Accepted" --> Sinks[Sink Interface]:::core
+        
+        %% Pool Cycle
+        Drop -.-> Pool[(Sync.Pool)]:::pool
+        Pool -.-> Engine
     end
     
-    subgraph Async Pipeline
-        Async -- Channel --> Worker[Worker Goroutine]
-        Worker --> NetSink["WriterSink (Network)"]
+    subgraph Sinks Pipeline
+        direction TB
+        Sinks --> Multi[MultiSink]:::sink
+        Multi --> Console[ConsoleSink]:::sink
+        Multi --> File["WriterSink (File)"]:::sink
+        Multi --> Async[AsyncSink]:::sink
     end
     
-    subgraph Network
-        NetSink --> Serializer["Cap'n Proto Serializer"]
-        Serializer --> ManagedConn[ManagedConnection]
-        ManagedConn --> Socket["SafeSocket / TCP"]
+    subgraph Async Network
+        direction TB
+        Async -- Channel --> Worker([Worker Goroutine]):::net
+        Worker --> NetSink["WriterSink (Network)"]:::net
+        NetSink --> Serializer["Cap'n Proto Serializer"]:::net
+        Serializer --> ManagedConn[ManagedConnection]:::net
+        ManagedConn --> Socket["SafeSocket / TCP"]:::net
     end
     
-    subgraph Notification
-        Engine -->|Warning/Error| Notifier[RemoteNotifier]
-        Notifier -- Channel --> NotifWorker[Notifier Worker]
-        NotifWorker --> NotifConn["ManagedConnection (Hello Protocol)"]
+    subgraph Notifications
+        direction TB
+        Engine -. "Warning/Error" .-> Notifier[RemoteNotifier]:::alert
+        Notifier -- Channel --> NotifWorker([Notifier Worker]):::alert
+        NotifWorker --> NotifConn["ManagedConnection (Hello)"]:::alert
     end
 ```
 
