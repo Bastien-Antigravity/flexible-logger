@@ -13,10 +13,13 @@ flowchart TD
     classDef alert fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#b71c1c;
     classDef pool fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,stroke-dasharray: 5 5,color:#4a148c;
 
+    %% Application Node Styling
+    style App fill:#37474f,stroke:#263238,stroke-width:3px,color:#ffffff
+
     %% Nodes
     App[Application] -->|LogEntry| Engine(LogEngine):::core
     
-    subgraph Core Processing
+    subgraph Core [Core Processing]
         direction TB
         Engine -->|Filter| Decision{Level Check}:::core
         Decision -- "Rejected" --> Drop((Drop/Pool)):::pool
@@ -26,16 +29,18 @@ flowchart TD
         Drop -.-> Pool[(Sync.Pool)]:::pool
         Pool -.-> Engine
     end
+    style Core fill:#edf7ff,stroke:#82b1ff,stroke-width:2px,color:#0d47a1
     
-    subgraph Sinks Pipeline
+    subgraph SinksPipe [Sinks Pipeline]
         direction TB
         Sinks --> Multi[MultiSink]:::sink
         Multi --> Console[ConsoleSink]:::sink
         Multi --> File["WriterSink (File)"]:::sink
         Multi --> Async[AsyncSink]:::sink
     end
+    style SinksPipe fill:#f1f8e9,stroke:#aed581,stroke-width:2px,color:#33691e
     
-    subgraph Async Network
+    subgraph AsyncNet [Async Network]
         direction TB
         Async -- Channel --> Worker([Worker Goroutine]):::net
         Worker --> NetSink["WriterSink (Network)"]:::net
@@ -43,13 +48,15 @@ flowchart TD
         Serializer --> ManagedConn[ManagedConnection]:::net
         ManagedConn --> Socket["SafeSocket / TCP"]:::net
     end
+    style AsyncNet fill:#fffde7,stroke:#fff176,stroke-width:2px,color:#f57f17
     
-    subgraph Notifications
+    subgraph Notif [Notifications]
         direction TB
         Engine -. "Warning/Error" .-> Notifier[RemoteNotifier]:::alert
         Notifier -- Channel --> NotifWorker([Notifier Worker]):::alert
         NotifWorker --> NotifConn["ManagedConnection (Hello)"]:::alert
     end
+    style Notif fill:#ffebee,stroke:#ffcdd2,stroke-width:2px,color:#b71c1c
 ```
 
 ## Key Components
