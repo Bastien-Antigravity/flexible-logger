@@ -8,31 +8,31 @@ This document describes the internal design of the Flexible Logger.
 graph TD
     App[Application] -->|LogEntry| Engine[LogEngine]
     Engine -->|Filter| Pool{Level Check}
-    Pool -- Low Level --> Drop[Drop / Return to Pool]
+    Pool -- Low Level --> Drop["Drop / Return to Pool"]
     Pool -- High Level --> Sink[Sink Interface]
     
     subgraph Sinks
         Sink --> Multi[MultiSink]
         Multi --> Console[ConsoleSink]
-        Multi --> File[WriterSink (File)]
+        Multi --> File["WriterSink (File)"]
         Multi --> Async[AsyncSink]
     end
     
     subgraph Async Pipeline
         Async -- Channel --> Worker[Worker Goroutine]
-        Worker --> NetSink[WriterSink (Network)]
+        Worker --> NetSink["WriterSink (Network)"]
     end
     
     subgraph Network
-        NetSink --> Serializer[Cap'n Proto Serializer]
+        NetSink --> Serializer["Cap'n Proto Serializer"]
         Serializer --> ManagedConn[ManagedConnection]
-        ManagedConn --> Socket[SafeSocket / TCP]
+        ManagedConn --> Socket["SafeSocket / TCP"]
     end
     
     subgraph Notification
         Engine -->|Warning/Error| Notifier[RemoteNotifier]
         Notifier -- Channel --> NotifWorker[Notifier Worker]
-        NotifWorker --> NotifConn[ManagedConnection (Hello Protocol)]
+        NotifWorker --> NotifConn["ManagedConnection (Hello Protocol)"]
     end
 ```
 
