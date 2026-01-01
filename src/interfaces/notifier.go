@@ -7,7 +7,7 @@ import "github.com/Bastien-Antigravity/flexible-logger/src/models"
 type Notifier interface {
 	// -------------------------------------------------------------------------
 	// Notify sends a notification.
-	Notify(n *models.Notification) error
+	Notify(n *models.NotifMessage) error
 
 	// -------------------------------------------------------------------------
 	// Close closes the notifier.

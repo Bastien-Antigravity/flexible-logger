@@ -52,7 +52,7 @@ func (l *LogEngine) Log(level models.Level, msg string) {
 	// Example strategy: Notify on Warning or above, or specific rules
 	// In govenv this is map-based. Here we do simple level check for demo.
 	if l.Notifier != nil && level >= models.LevelWarning {
-		n := &models.Notification{
+		n := &models.NotifMessage{
 			Message: msg,
 			Tags:    []string{"alert"}, // Default tag
 		}

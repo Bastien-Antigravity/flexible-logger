@@ -18,7 +18,7 @@ type RemoteNotifier struct {
 	ip         *string
 	port       *string
 	publicIP   *string
-	notifChan  chan *models.Notification
+	notifChan  chan *models.NotifMessage
 	wg         sync.WaitGroup
 	netManager *network_manager.NetworkManager
 }
@@ -30,7 +30,7 @@ func NewRemoteNotifier(ip, port, publicIP *string) *RemoteNotifier {
 		ip:         ip,
 		port:       port,
 		publicIP:   publicIP,
-		notifChan:  make(chan *models.Notification, 1000),
+		notifChan:  make(chan *models.NotifMessage, 1000),
 		netManager: network_manager.NewNetworkManager(),
 	}
 	rn.wg.Add(1)
@@ -40,7 +40,7 @@ func NewRemoteNotifier(ip, port, publicIP *string) *RemoteNotifier {
 
 // -----------------------------------------------------------------------------
 
-func (rn *RemoteNotifier) Notify(n *models.Notification) error {
+func (rn *RemoteNotifier) Notify(n *models.NotifMessage) error {
 	select {
 	case rn.notifChan <- n:
 		return nil
@@ -92,7 +92,7 @@ func (rn *RemoteNotifier) worker() {
 
 // serialize converts Notification to NotifieMsg Cap'n Proto format.
 // It uses the locally replicated NotifieMsg schema.
-func (rn *RemoteNotifier) serialize(n *models.Notification) []byte {
+func (rn *RemoteNotifier) serialize(n *models.NotifMessage) []byte {
 	// Create a new Cap'n Proto message
 	msg, seg, err := capnp.NewMessage(capnp.SingleSegment(nil))
 	if err != nil {

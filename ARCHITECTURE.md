@@ -7,11 +7,11 @@ This document describes the internal design of the Flexible Logger.
 ```mermaid
 flowchart TD
     %% Styles
-    classDef core fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    classDef sink fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef net fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
-    classDef alert fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
-    classDef pool fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef core fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1;
+    classDef sink fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
+    classDef net fill:#fff8e1,stroke:#fbc02d,stroke-width:2px,color:#f57f17;
+    classDef alert fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#b71c1c;
+    classDef pool fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,stroke-dasharray: 5 5,color:#4a148c;
 
     %% Nodes
     App[Application] -->|LogEntry| Engine(LogEngine):::core
