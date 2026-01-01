@@ -38,13 +38,25 @@ The library provides pre-configured profiles for common use cases:
 *   **Behavior**: Synchronous.
 *   **Sinks**: Console (Text), File (Text/Readable).
 
+### 5. Minimal (`NewMinimalLogger`)
+*   **Target**: Lightweight Applications / CLIs.
+*   **Behavior**: Async Console only.
+*   **Sinks**: Console (Async).
+*   **Dependencies**: No external config or detailed file logging needed.
+
+### 6. Notification Logger (`NewNotifLogger`)
+*   **Target**: Services that need custom handling of alerts (e.g., Notification Servers).
+*   **Behavior**: Similar to `NoLockLogger` (Fully Async).
+*   **Notifier**: Uses a **Local Notifier** (Channel) instead of sending alerts over the network.
+*   **API**: Exposes `SetLocalNotifQueue(chan *models.NotifMessage)` to bind the alert stream.
+
 ## Usage
 
 ```go
 package main
 
 import (
-    "flexible-logger/src/profiles"
+    "github.com/Bastien-Antigravity/flexible-logger/src/profiles"
     distributed_config "github.com/Bastien-Antigravity/distributed-config"
 )
 
