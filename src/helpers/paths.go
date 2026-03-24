@@ -25,7 +25,7 @@ func GetDefaultLogPath() string {
 		exeName = strings.TrimSuffix(exeName, ext)
 	}
 
-	logDir := filepath.Join(exeDir, "log")
+	logDir := filepath.Join(exeDir, "logs")
 
 	// Ensure log directory exists
 	_ = os.MkdirAll(logDir, 0755)
