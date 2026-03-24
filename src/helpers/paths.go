@@ -13,7 +13,7 @@ func GetDefaultLogPath() string {
 	exePath, err := os.Executable()
 	if err != nil {
 		// Fallback if we can't get executable path
-		return "./log/application.log"
+		return "./logs/application.log"
 	}
 
 	exeDir := filepath.Dir(exePath)
