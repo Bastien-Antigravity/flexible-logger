@@ -22,7 +22,7 @@ func main() {
 
 	start := time.Now()
 	for i := 0; i < 1_000_000; i++ {
-		perfLog.Info(fmt.Sprintf("HighPerf log message %d", i))
+		perfLog.Info("HighPerf log message %d", i)
 	}
 
 	// Close flushing async buffer

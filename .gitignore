@@ -14,3 +14,4 @@ bin/
 
 # Temp
 tmp/
+__debug_bin*

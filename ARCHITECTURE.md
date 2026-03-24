@@ -63,6 +63,7 @@ flowchart TD
 
 ### 1. LogEngine (Core)
 The central entry point. It handles:
+*   **Printf-style API**: All log methods accept `(format string, args ...any)`, formatting the message internally via `fmt.Sprintf`.
 *   **Pooling**: Retrieves `LogEntry` objects from a `sync.Pool`.
 *   **Filtering**: Checks log levels (Debug, Info, etc.) before processing.
 *   **Routing**: Passes valid entries to the configured `Sink` and `Notifier`.

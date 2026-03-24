@@ -7,27 +7,27 @@ import "github.com/Bastien-Antigravity/flexible-logger/src/models"
 type Logger interface {
 	// -------------------------------------------------------------------------
 	// Debug logs a message at Debug level.
-	Debug(msg string)
+	Debug(format string, args ...any)
 
 	// -------------------------------------------------------------------------
 	// Info logs a message at Info level.
-	Info(msg string)
+	Info(format string, args ...any)
 
 	// -------------------------------------------------------------------------
 	// Warning logs a message at Warning level.
-	Warning(msg string)
+	Warning(format string, args ...any)
 
 	// -------------------------------------------------------------------------
 	// Error logs a message at Error level.
-	Error(msg string)
+	Error(format string, args ...any)
 
 	// -------------------------------------------------------------------------
 	// Critical logs a message at Critical level.
-	Critical(msg string)
+	Critical(format string, args ...any)
 
 	// -------------------------------------------------------------------------
 	// Log logs a message at a specific level.
-	Log(level models.Level, msg string)
+	Log(level models.Level, format string, args ...any)
 
 	// -------------------------------------------------------------------------
 	// Close flushes any buffered logs and closes the handler.

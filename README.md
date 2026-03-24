@@ -52,6 +52,8 @@ The library provides pre-configured profiles for common use cases:
 
 ## Usage
 
+All log methods use **Printf-style** format strings (`format string, args ...any`), so you can embed variables directly without `fmt.Sprintf`:
+
 ```go
 package main
 
@@ -68,11 +70,11 @@ func main() {
     logger := profiles.NewHighPerfLogger("MyApp", config)
     defer logger.Close()
 
-    // 3. Log
+    // 3. Log with format strings
     logger.Info("Application started")
-    logger.Debug("Processing request", "requestID", 123)
-    
+    logger.Debug("Processing request #%d from %s", 123, "user-abc")
+
     // 4. Notifications (Warnings/Errors trigger this automatically if configured)
-    logger.Warning("High memory usage detected")
+    logger.Warning("High memory usage: %d%%", 87)
 }
 ```

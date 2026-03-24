@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
@@ -41,10 +42,11 @@ func (l *LogEngine) getEntry(level models.Level, msg string) *models.LogEntry {
 }
 
 // -----------------------------------------------------------------------------
-func (l *LogEngine) Log(level models.Level, msg string) {
+func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 	if level < l.Level {
 		return
 	}
+	msg := fmt.Sprintf(format, args...)
 	e := l.getEntry(level, msg)
 	l.Sink.Write(e)
 
@@ -61,8 +63,8 @@ func (l *LogEngine) Log(level models.Level, msg string) {
 }
 
 // -----------------------------------------------------------------------------
-func (l *LogEngine) Debug(msg string)    { l.Log(models.LevelDebug, msg) }
-func (l *LogEngine) Info(msg string)     { l.Log(models.LevelInfo, msg) }
-func (l *LogEngine) Warning(msg string)  { l.Log(models.LevelWarning, msg) }
-func (l *LogEngine) Error(msg string)    { l.Log(models.LevelError, msg) }
-func (l *LogEngine) Critical(msg string) { l.Log(models.LevelCritical, msg) }
+func (l *LogEngine) Debug(format string, args ...any)    { l.Log(models.LevelDebug, format, args...) }
+func (l *LogEngine) Info(format string, args ...any)     { l.Log(models.LevelInfo, format, args...) }
+func (l *LogEngine) Warning(format string, args ...any)  { l.Log(models.LevelWarning, format, args...) }
+func (l *LogEngine) Error(format string, args ...any)    { l.Log(models.LevelError, format, args...) }
+func (l *LogEngine) Critical(format string, args ...any) { l.Log(models.LevelCritical, format, args...) }
