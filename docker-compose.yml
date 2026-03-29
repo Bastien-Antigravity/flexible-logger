@@ -1,0 +1,10 @@
+services:
+  flexible-logger:
+    build: .
+    image: flexible-logger:latest
+    container_name: flexible-logger
+    restart: unless-stopped
+networks:
+  default:
+    name: teleremote_network
+    external: true
