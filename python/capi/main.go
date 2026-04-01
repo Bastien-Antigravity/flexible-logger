@@ -13,6 +13,7 @@ import (
 
 	distributed_config "github.com/Bastien-Antigravity/distributed-config"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
+	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 	"github.com/Bastien-Antigravity/flexible-logger/src/profiles"
 )
 
@@ -103,19 +104,7 @@ func Log(handle int32, level int32, message *C.char) int32 {
 
 	msg := C.GoString(message)
 
-	switch level {
-	case 0: // DEBUG
-		logger.Debug(msg)
-	case 1: // INFO
-		logger.Info(msg)
-	case 2: // WARNING
-		logger.Warning(msg)
-	case 3: // ERROR
-		logger.Error(msg)
-	default:
-		setError(fmt.Errorf("invalid log level: %d", level))
-		return -1
-	}
+	logger.Log(models.Level(level), msg)
 
 	return 0
 }

@@ -7,11 +7,19 @@ from typing import Optional
 class FlexibleLogger:
     """ Python wrapper for the Go Flexible Logger library. """
 
-    # Log Levels
-    DEBUG = 0
-    INFO = 1
-    WARNING = 2
-    ERROR = 3
+    # Log Levels (Synchronized with Go core models.Level)
+    NOT_SET = 0
+    DEBUG = 1
+    STREAM = 2
+    INFO = 3
+    LOGON = 4
+    LOGOUT = 5
+    TRADE = 6
+    SCHEDULE = 7
+    REPORT = 8
+    WARNING = 9
+    ERROR = 10
+    CRITICAL = 11
 
     _lib = None
 
@@ -87,14 +95,35 @@ class FlexibleLogger:
     def debug(self, message: str):
         self.log(self.DEBUG, message)
 
+    def stream(self, message: str):
+        self.log(self.STREAM, message)
+
     def info(self, message: str):
         self.log(self.INFO, message)
+
+    def logon(self, message: str):
+        self.log(self.LOGON, message)
+
+    def logout(self, message: str):
+        self.log(self.LOGOUT, message)
+
+    def trade(self, message: str):
+        self.log(self.TRADE, message)
+
+    def schedule(self, message: str):
+        self.log(self.SCHEDULE, message)
+
+    def report(self, message: str):
+        self.log(self.REPORT, message)
 
     def warning(self, message: str):
         self.log(self.WARNING, message)
 
     def error(self, message: str):
         self.log(self.ERROR, message)
+
+    def critical(self, message: str):
+        self.log(self.CRITICAL, message)
 
     def close(self):
         if self._handle >= 0:
