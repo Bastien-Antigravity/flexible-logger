@@ -66,7 +66,7 @@ func (mc *ManagedConnection) reconnect() error {
 	// For "reliable" logger, blocking until success is usually expected behavior
 	// (or at least better than dropping logs, though it blocks the caller).
 
-	address := fmt.Sprintf("%s:%s", *mc.ip, *mc.port)
+	var address string
 	delay := mc.nm.BaseDelay
 
 	for {

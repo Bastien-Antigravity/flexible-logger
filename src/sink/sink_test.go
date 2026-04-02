@@ -119,7 +119,10 @@ func TestMultiSink_Write(t *testing.T) {
 	entry.Reset()
 	entry.Message = "Multi message"
 
-	multi.Write(entry)
+	err := multi.Write(entry)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	if sink1.GetWriteCount() != 1 || sink2.GetWriteCount() != 1 {
 		t.Errorf("Expected 1 write in both sinks, got sink1=%d, sink2=%d", sink1.GetWriteCount(), sink2.GetWriteCount())

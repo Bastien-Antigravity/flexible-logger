@@ -1,4 +1,4 @@
-package engine
+package error_handler
 
 import (
 	"fmt"
@@ -10,9 +10,9 @@ import (
 )
 
 // -----------------------------------------------------------------------------
-// reportInternalError is the centralized way to report errors in the logger itself.
+// ReportInternalError is the centralized way to report errors in the logger itself.
 // It formats the error as a LogEntry to maintain consistency.
-func reportInternalError(loggerName string, source string, err error, originalMsg string) {
+func ReportInternalError(loggerName string, source string, err error, originalMsg string) {
 	serializer := serializers.NewTextSerializer()
 
 	e := &models.LogEntry{

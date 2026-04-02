@@ -6,6 +6,7 @@ import (
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
+	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 )
 
 // -----------------------------------------------------------------------------
@@ -40,8 +41,13 @@ func (s *AsyncSink) SetOnError(onError func(error, *models.LogEntry)) {
 func (s *AsyncSink) worker() {
 	defer s.wg.Done()
 	for entry := range s.buffer {
-		if err := s.next.Write(entry); err != nil && s.OnError != nil {
-			s.OnError(err, entry)
+		if err := s.next.Write(entry); err != nil {
+			if s.OnError != nil {
+				s.OnError(err, entry)
+			} else {
+				// Use global reporter by default
+				error_handler.ReportInternalError(entry.LoggerName, "AsyncSink.worker", err, entry.Message)
+			}
 		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 	"github.com/Bastien-Antigravity/flexible-logger/src/network_manager"
+	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	notifie_schema "github.com/Bastien-Antigravity/flexible-logger/src/schemas/notifie_msg"
 
 	capnp "capnproto.org/go/capnp/v3"
@@ -68,7 +69,7 @@ func (rn *RemoteNotifier) worker() {
 
 	conn, err := rn.netManager.ConnectWithRetry(rn.ip, rn.port, rn.publicIP, "tcp-hello")
 	if err != nil {
-		fmt.Printf("RemoteNotifier: Fatal error connecting: %v\n", err)
+		error_handler.ReportInternalError("RemoteNotifier", "worker.connect", err, "")
 		return
 	}
 	defer conn.Close()
@@ -82,8 +83,7 @@ func (rn *RemoteNotifier) worker() {
 		// ManagedConnection handles reconnection internally
 		_, err := conn.Write(data)
 		if err != nil {
-			fmt.Printf("RemoteNotifier: Failed to send notification: %v\n", err)
-			// Connection is still valid (it's the managed wrapper), so just continue
+			error_handler.ReportInternalError("RemoteNotifier", "worker.write", err, n.Message)
 		}
 	}
 }

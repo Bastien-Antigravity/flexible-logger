@@ -6,6 +6,7 @@ import (
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
+	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 )
 
 // -----------------------------------------------------------------------------
@@ -23,11 +24,11 @@ type LogEngine struct {
 // -----------------------------------------------------------------------------
 func (l *LogEngine) Close() {
 	if err := l.Sink.Close(); err != nil {
-		reportInternalError(l.Name, "sink.Close", err, "")
+		error_handler.ReportInternalError(l.Name, "sink.Close", err, "")
 	}
 	if l.Notifier != nil {
 		if err := l.Notifier.Close(); err != nil {
-			reportInternalError(l.Name, "notifier.Close", err, "")
+			error_handler.ReportInternalError(l.Name, "notifier.Close", err, "")
 		}
 	}
 }
@@ -53,7 +54,7 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	e := l.getEntry(level, msg)
 	if err := l.Sink.Write(e); err != nil {
-		reportInternalError(l.Name, "sink", err, msg)
+		error_handler.ReportInternalError(l.Name, "sink", err, msg)
 	}
 
 	// Check for Notification triggers
@@ -65,7 +66,7 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 			Tags:    []string{"alert"}, // Default tag
 		}
 		if err := l.Notifier.Notify(n); err != nil {
-			reportInternalError(l.Name, "notifier", err, msg)
+			error_handler.ReportInternalError(l.Name, "notifier", err, msg)
 		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	safesocket "github.com/Bastien-Antigravity/safe-socket"
 )
 
@@ -90,6 +91,8 @@ func (nm *NetworkManager) ConnectBlocking(ip, port, publicIP *string, profile st
 	}
 
 	// Use internal reconnect logic to establish initial connection
-	mc.reconnect()
+	if err := mc.reconnect(); err != nil {
+		error_handler.ReportInternalError("NetworkManager", "ConnectBlocking", err, fmt.Sprintf("Failed to connect to %s:%s", *ip, *port))
+	}
 	return mc
 }
