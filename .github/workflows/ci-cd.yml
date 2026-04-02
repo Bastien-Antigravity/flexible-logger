@@ -11,14 +11,62 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  test-go:
+  test-and-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
-      - name: Build Go Library
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build all packages
         run: go build ./...
-      - name: Run Go Tests
-        run: go test ./...
+
+      - name: Install golangci-lint
+        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.6
+
+      - name: Run Linter
+        run: $(go env GOPATH)/bin/golangci-lint run ./...
+
+      - name: Run standard unit tests
+        run: go test -v -race -coverprofile=coverage.out ./...
+        continue-on-error: false
+
+      - name: Upload coverage (optional)
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.out
+        if: success()
+
+      - name: Build integration test binary
+        run: go build -o /tmp/integration-test ./cmd/test
+
+      - name: Run integration test
+        # The test expects a config/default.yaml file.
+        # We create a minimal one if it doesn't exist, as per the user requirement.
+        run: |
+          if [ ! -f config/default.yaml ]; then
+            mkdir -p config
+            cat > config/default.yaml << EOF
+          common:
+            name: common
+            reset: false
+          capabilities:
+            logger:
+              ip: 127.0.0.1
+              port: "9020"
+          common_file_path: ""
+          memconfigpath: ""
+          EOF
+          fi
+          /tmp/integration-test
+
+      # - name: Build config-cli (optional)
+      #   run: |
+      #     if [ -d "cmd/config-cli" ]; then
+      #       go build -o /tmp/config-cli ./cmd/config-cli
+      #     fi

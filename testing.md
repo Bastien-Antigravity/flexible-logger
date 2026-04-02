@@ -50,16 +50,22 @@ make test
 ```
 
 ### Race Conditions Check
-To ensure there are no concurrency issues in the asynchronous logging paths:
+To ensure there are no concurrency issues in the asynchronous logging paths, the CI/CD pipeline runs tests with the race detector enabled:
 ```bash
 go test -race ./...
 ```
+All mock implementations (`MockSink`, `MockNotifier`) are thread-safe using `sync.Mutex`.
 
-### Verbose Output
-```bash
-go test -v ./...
-```
+### Integration Tests in CI
+The CI/CD pipeline now includes an integration test step that:
+1.  Builds the integration test binary from `cmd/test`.
+2.  Creates a minimal `config/default.yaml` for environment simulation.
+3.  Executes the test to verify baseline performance and reliability.
 
 ## Continuous Integration
 
-All tests are automatically executed via GitHub Actions on every push to the `main` and `develop` branches. The configuration can be found in `.github/workflows/ci-cd.yml`.
+The enhanced CI/CD pipeline (`.github/workflows/ci-cd.yml`) performs the following steps:
+- **Linting**: Uses `golangci-lint` to maintain code quality.
+- **Verbose Unit Testing**: Runs all tests with `-v` to show detailed results and `-race` for safety.
+- **Coverage Reporting**: Generates a `coverage.out` file and uploads it to Codecov.
+- **Integration Verification**: Build and runs the benchmark/integration test.

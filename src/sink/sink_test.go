@@ -2,6 +2,7 @@ package sink
 
 import (
 	"bytes"
+	"sync"
 	"testing"
 	"time"
 
@@ -25,17 +26,40 @@ type MockSink struct {
 	LastEntry *models.LogEntry
 	WriteCount int
 	Closed     bool
+	mu         sync.Mutex
 }
 
 func (m *MockSink) Write(entry *models.LogEntry) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.WriteCount++
 	m.LastEntry = entry
 	return nil
 }
 
 func (m *MockSink) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.Closed = true
 	return nil
+}
+
+func (m *MockSink) GetWriteCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.WriteCount
+}
+
+func (m *MockSink) GetLastEntry() *models.LogEntry {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.LastEntry
+}
+
+func (m *MockSink) IsClosed() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.Closed
 }
 
 func TestWriterSink_Write(t *testing.T) {
@@ -73,15 +97,15 @@ func TestAsyncSink_Write(t *testing.T) {
 	// Wait for worker to process
 	time.Sleep(50 * time.Millisecond)
 
-	if mockSink.WriteCount != 1 {
-		t.Errorf("Expected 1 write, got %d", mockSink.WriteCount)
+	if mockSink.GetWriteCount() != 1 {
+		t.Errorf("Expected 1 write, got %d", mockSink.GetWriteCount())
 	}
-	if mockSink.LastEntry.Message != "Async message" {
-		t.Errorf("Expected 'Async message', got '%s'", mockSink.LastEntry.Message)
+	if mockSink.GetLastEntry().Message != "Async message" {
+		t.Errorf("Expected 'Async message', got '%s'", mockSink.GetLastEntry().Message)
 	}
 
 	asyncSink.Close()
-	if !mockSink.Closed {
+	if !mockSink.IsClosed() {
 		t.Error("Expected underlying sink to be closed")
 	}
 }
@@ -97,7 +121,7 @@ func TestMultiSink_Write(t *testing.T) {
 
 	multi.Write(entry)
 
-	if sink1.WriteCount != 1 || sink2.WriteCount != 1 {
-		t.Errorf("Expected 1 write in both sinks, got sink1=%d, sink2=%d", sink1.WriteCount, sink2.WriteCount)
+	if sink1.GetWriteCount() != 1 || sink2.GetWriteCount() != 1 {
+		t.Errorf("Expected 1 write in both sinks, got sink1=%d, sink2=%d", sink1.GetWriteCount(), sink2.GetWriteCount())
 	}
 }
