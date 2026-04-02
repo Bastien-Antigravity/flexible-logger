@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/profiles"
+	"github.com/Bastien-Antigravity/flexible-logger/src/test_utils"
 
 	distributed_config "github.com/Bastien-Antigravity/distributed-config"
 )
@@ -16,7 +17,19 @@ func main() {
 	// HighPerf Logger (Network Async)
 	// Mock Config
 	distConf := distributed_config.New("standalone")
-	// config object no longer needed
+
+	// Start Mock Servers
+	logIp, logPort, stopLog := test_utils.StartMockServer("LogServer")
+	defer stopLog()
+	notifIp, notifPort, stopNotif := test_utils.StartMockServer("NotifServer")
+	defer stopNotif()
+
+	// Override Config with Mock Addresses
+	distConf.Capabilities.Logger.IP = logIp
+	distConf.Capabilities.Logger.Port = logPort
+	distConf.Capabilities.Notification.IP = notifIp
+	distConf.Capabilities.Notification.Port = notifPort
+
 	prodLog := profiles.NewHighPerfLogger("BenchApp", distConf)
 
 	count := 1_000_000
