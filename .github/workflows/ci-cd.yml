@@ -26,11 +26,10 @@ jobs:
       - name: Build all packages
         run: go build ./...
 
-      - name: Install golangci-lint
-        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.6
-
-      - name: Run Linter
-        run: $(go env GOPATH)/bin/golangci-lint run ./...
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.6
 
       - name: Run standard unit tests
         run: go test -v -race -coverprofile=coverage.out ./...
