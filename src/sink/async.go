@@ -15,6 +15,7 @@ type AsyncSink struct {
 	buffer     chan *models.LogEntry
 	wg         sync.WaitGroup
 	bufferSize int
+	OnError    func(error, *models.LogEntry) // Optional error handler
 }
 
 // -----------------------------------------------------------------------------
@@ -30,11 +31,18 @@ func NewAsyncSink(next interfaces.Sink, bufferSize int) *AsyncSink {
 }
 
 // -----------------------------------------------------------------------------
+func (s *AsyncSink) SetOnError(onError func(error, *models.LogEntry)) {
+	s.OnError = onError
+}
+
+// -----------------------------------------------------------------------------
 
 func (s *AsyncSink) worker() {
 	defer s.wg.Done()
 	for entry := range s.buffer {
-		s.next.Write(entry)
+		if err := s.next.Write(entry); err != nil && s.OnError != nil {
+			s.OnError(err, entry)
+		}
 	}
 }
 

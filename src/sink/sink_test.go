@@ -23,7 +23,7 @@ func (m *MockSerializer) Serialize(entry *models.LogEntry) ([]byte, error) {
 
 // MockSink for testing
 type MockSink struct {
-	LastEntry *models.LogEntry
+	LastEntry  *models.LogEntry
 	WriteCount int
 	Closed     bool
 	mu         sync.Mutex

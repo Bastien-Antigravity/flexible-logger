@@ -22,9 +22,13 @@ type LogEngine struct {
 
 // -----------------------------------------------------------------------------
 func (l *LogEngine) Close() {
-	l.Sink.Close()
+	if err := l.Sink.Close(); err != nil {
+		reportInternalError(l.Name, "sink.Close", err, "")
+	}
 	if l.Notifier != nil {
-		l.Notifier.Close()
+		if err := l.Notifier.Close(); err != nil {
+			reportInternalError(l.Name, "notifier.Close", err, "")
+		}
 	}
 }
 
@@ -48,7 +52,9 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 	}
 	msg := fmt.Sprintf(format, args...)
 	e := l.getEntry(level, msg)
-	l.Sink.Write(e)
+	if err := l.Sink.Write(e); err != nil {
+		reportInternalError(l.Name, "sink", err, msg)
+	}
 
 	// Check for Notification triggers
 	// Example strategy: Notify on Warning or above, or specific rules
@@ -58,13 +64,17 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 			Message: msg,
 			Tags:    []string{"alert"}, // Default tag
 		}
-		l.Notifier.Notify(n)
+		if err := l.Notifier.Notify(n); err != nil {
+			reportInternalError(l.Name, "notifier", err, msg)
+		}
 	}
 }
 
 // -----------------------------------------------------------------------------
-func (l *LogEngine) Debug(format string, args ...any)    { l.Log(models.LevelDebug, format, args...) }
-func (l *LogEngine) Info(format string, args ...any)     { l.Log(models.LevelInfo, format, args...) }
-func (l *LogEngine) Warning(format string, args ...any)  { l.Log(models.LevelWarning, format, args...) }
-func (l *LogEngine) Error(format string, args ...any)    { l.Log(models.LevelError, format, args...) }
-func (l *LogEngine) Critical(format string, args ...any) { l.Log(models.LevelCritical, format, args...) }
+func (l *LogEngine) Debug(format string, args ...any)   { l.Log(models.LevelDebug, format, args...) }
+func (l *LogEngine) Info(format string, args ...any)    { l.Log(models.LevelInfo, format, args...) }
+func (l *LogEngine) Warning(format string, args ...any) { l.Log(models.LevelWarning, format, args...) }
+func (l *LogEngine) Error(format string, args ...any)   { l.Log(models.LevelError, format, args...) }
+func (l *LogEngine) Critical(format string, args ...any) {
+	l.Log(models.LevelCritical, format, args...)
+}
