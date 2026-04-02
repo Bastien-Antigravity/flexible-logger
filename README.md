@@ -10,7 +10,6 @@ A high-performance, zero-allocation, asynchronous logging library for Go, design
 *   **Network Logging**: Reliable TCP logging with auto-reconnection (`NetworkManager`).
 *   **Notifications**: Asynchronous alert system (`RemoteNotifier`) for warnings and errors.
 *   **Flexible Config**: Hot-swappable configurations via `distributed-config`.
-*   **Python Bindings**: High-performance Python wrapper via `ctypes`.
 
 ## Profiles
 
@@ -80,34 +79,4 @@ func main() {
 }
 ```
 
-## Python Usage
-
-The library includes high-performance bindings for Python (3.8 - 3.12).
-
-```python
-from flexible_logger import FlexibleLogger
-
-# 1. Initialize Logger
-# Available profiles: "high-perf", "standard", "devel", "minimal", "no-lock", "notif"
-logger = FlexibleLogger(name="MyApp", profile="standard")
-
-# 2. Log messages
-logger.info("Application started")
-logger.debug(f"Processing request #123")
-
-# 3. Handle Warnings/Errors (Triggers notifications if configured)
-logger.warning("Resource usage high")
-
-# 4. Always close to flush async buffers
-logger.close()
-```
-
-## Installation (Python)
-
-To build the Python wheel locally:
-
-```bash
-make build-capi
-make python-build
-pip install python/dist/flexible_logger-*.whl
 ```
