@@ -42,12 +42,12 @@ func NewStandardLogger(name string, config *distributed_config.Config) interface
 	// We block now until connection is established, per requirements.
 	nm := network_manager.NewNetworkManager()
 
-	if config.Capabilities.Logger == nil {
+	if config.Capabilities.LogServer == nil {
 		fmt.Fprintf(os.Stderr, "StandardLogger: Logger configuration missing\n")
 		os.Exit(1)
 	}
-	ipPtr := &config.Capabilities.Logger.IP
-	portPtr := &config.Capabilities.Logger.Port
+	ipPtr := &config.Capabilities.LogServer.IP
+	portPtr := &config.Capabilities.LogServer.Port
 
 	// Default public IP
 	publicIP := "127.0.0.1"
@@ -69,12 +69,12 @@ func NewStandardLogger(name string, config *distributed_config.Config) interface
 
 	// 6. Notifier (Async)
 	// RemoteNotifier handles its own connection/retry logic.
-	if config.Capabilities.Notification == nil {
+	if config.Capabilities.NotifServer == nil {
 		fmt.Fprintf(os.Stderr, "StandardLogger: Notification configuration missing\n")
 		os.Exit(1)
 	}
-	notifIpPtr := &config.Capabilities.Notification.IP
-	notifPortPtr := &config.Capabilities.Notification.Port
+	notifIpPtr := &config.Capabilities.NotifServer.IP
+	notifPortPtr := &config.Capabilities.NotifServer.Port
 
 	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP)
 

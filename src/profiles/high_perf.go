@@ -24,12 +24,12 @@ func NewHighPerfLogger(name string, config *distributed_config.Config) interface
 	// 1. Network (Async)
 	nm := network_manager.NewNetworkManager()
 
-	if config.Capabilities.Logger == nil {
+	if config.Capabilities.LogServer == nil {
 		fmt.Fprintf(os.Stderr, "HighPerfLogger: Logger configuration missing\n")
 		os.Exit(1)
 	}
-	ipPtr := &config.Capabilities.Logger.IP
-	portPtr := &config.Capabilities.Logger.Port
+	ipPtr := &config.Capabilities.LogServer.IP
+	portPtr := &config.Capabilities.LogServer.Port
 
 	// Default public IP (as pointer to handle dynamic update requirement, though static here for now)
 	publicIP := "127.0.0.1"
@@ -48,12 +48,12 @@ func NewHighPerfLogger(name string, config *distributed_config.Config) interface
 	logger := factory.CreateLogEngine(name, models.LevelInfo, networkSink).(*engine.LogEngine)
 
 	// 3. Notifier (Async)
-	if config.Capabilities.Notification == nil {
+	if config.Capabilities.NotifServer == nil {
 		fmt.Fprintf(os.Stderr, "HighPerfLogger: Notification configuration missing\n")
 		os.Exit(1)
 	}
-	notifIpPtr := &config.Capabilities.Notification.IP
-	notifPortPtr := &config.Capabilities.Notification.Port
+	notifIpPtr := &config.Capabilities.NotifServer.IP
+	notifPortPtr := &config.Capabilities.NotifServer.Port
 
 	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP)
 

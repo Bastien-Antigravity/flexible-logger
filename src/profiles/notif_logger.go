@@ -52,12 +52,12 @@ func NewNotifLogger(name string, config *distributed_config.Config) *NotifLogger
 	// 3. Network (Async)
 	nm := network_manager.NewNetworkManager()
 
-	if config.Capabilities.Logger == nil {
+	if config.Capabilities.LogServer == nil {
 		fmt.Fprintf(os.Stderr, "NotifLogger: Logger configuration missing\n")
 		os.Exit(1)
 	}
-	ipPtr := &config.Capabilities.Logger.IP
-	portPtr := &config.Capabilities.Logger.Port
+	ipPtr := &config.Capabilities.LogServer.IP
+	portPtr := &config.Capabilities.LogServer.Port
 
 	// Default public IP
 	publicIP := "127.0.0.1"
