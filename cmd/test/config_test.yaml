@@ -2,33 +2,33 @@ common:
     name: common
     reset: false
 capabilities:
-    logger:
+    log_server:
         ip: 127.0.0.2
         port: "9020"
     config_server:
         ip: 127.0.0.2
         port: "1026"
         refresh: "300"
-    notification:
+    notif_server:
         ip: 127.0.0.2
         port: "10080"
-    telebot:
-        token: ${TELEBOT_TOKEN}
-        chat_id: ${TELEBOT_CHAT_ID}
+    tele_remote:
+        token: ${TR_TOKEN}
+        chat_id: ${TR_CHATID}
         ip: 127.0.0.2
         port: "31337"
     scheduler:
         ip: 127.0.0.2
         port: "5001"
-    monitoring:
+    web_interface:
         ip: 127.0.0.2
         port: "5000"
-    database:
+    timescale_db:
         ip: 127.0.0.2
         port: "5432"
         db_name: maindb
-        user: ${DB_USER}
-        password: ${DB_PASSWORD}
+        user: ${TS_USER}
+        password: ${TS_PASSWORD}
         ssl_cert: "false"
     file_system:
         temp_path: ./fs_temp

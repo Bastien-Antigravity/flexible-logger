@@ -1,40 +1,40 @@
 common:
-    name: common
+    name: flexible-logger-default
     reset: false
 capabilities:
     log_server:
-        ip: 127.0.0.2
+        ip: 127.0.0.1
         port: "9020"
     config_server:
-        ip: 127.0.0.2
+        ip: 127.0.0.1
         port: "1026"
         refresh: "300"
     notif_server:
-        ip: 127.0.0.2
+        ip: 127.0.0.1
         port: "10080"
     tele_remote:
-        token: ${TR_TOKEN}
-        chat_id: ${TR_CHATID}
-        ip: 127.0.0.2
+        token: ""
+        chat_id: ""
+        ip: 127.0.0.1
         port: "31337"
     scheduler:
-        ip: 127.0.0.2
+        ip: 127.0.0.1
         port: "5001"
     web_interface:
-        ip: 127.0.0.2
+        ip: 127.0.0.1
         port: "5000"
     timescale_db:
-        ip: 127.0.0.2
+        ip: 127.0.0.1
         port: "5432"
         db_name: maindb
-        user: ${TS_USER}
-        password: ${TS_PASSWORD}
+        user: ""
+        password: ""
         ssl_cert: "false"
     file_system:
         temp_path: ./fs_temp
         data_path: ./fs_data
     jupyter:
-        ip: 127.0.0.2
+        ip: 127.0.0.1
         port: "8888"
 common_file_path: ""
 memconfigpath: ""

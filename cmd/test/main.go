@@ -25,8 +25,15 @@ func main() {
 	defer stopNotif()
 
 	// Override Config with Mock Addresses
+	if distConf.Capabilities.LogServer == nil {
+		panic("Config error: LogServer capability missing. Check your YAML tags (should be log_server).")
+	}
 	distConf.Capabilities.LogServer.IP = logIp
 	distConf.Capabilities.LogServer.Port = logPort
+
+	if distConf.Capabilities.NotifServer == nil {
+		panic("Config error: NotifServer capability missing. Check your YAML tags (should be notif_server).")
+	}
 	distConf.Capabilities.NotifServer.IP = notifIp
 	distConf.Capabilities.NotifServer.Port = notifPort
 

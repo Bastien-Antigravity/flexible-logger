@@ -56,9 +56,12 @@ jobs:
             name: common
             reset: false
           capabilities:
-            logger:
+            log_server:
               ip: 127.0.0.1
               port: "9020"
+            notif_server:
+              ip: 127.0.0.1
+              port: "10080"
           common_file_path: ""
           memconfigpath: ""
           EOF
