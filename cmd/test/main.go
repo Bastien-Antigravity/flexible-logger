@@ -25,10 +25,10 @@ func main() {
 	defer stopNotif()
 
 	// Override Config with Mock Addresses
-	distConf.Capabilities.Logger.IP = logIp
-	distConf.Capabilities.Logger.Port = logPort
-	distConf.Capabilities.Notification.IP = notifIp
-	distConf.Capabilities.Notification.Port = notifPort
+	distConf.Capabilities.LogServer.IP = logIp
+	distConf.Capabilities.LogServer.Port = logPort
+	distConf.Capabilities.NotifServer.IP = notifIp
+	distConf.Capabilities.NotifServer.Port = notifPort
 
 	prodLog := profiles.NewHighPerfLogger("BenchApp", distConf)
 
