@@ -26,8 +26,40 @@ type Logger interface {
 	Critical(format string, args ...any)
 
 	// -------------------------------------------------------------------------
+	// Extra functions
+	// -------------------------------------------------------------------------
+
+	// -------------------------------------------------------------------------
+	// Stream logs a message at Stream level.
+	Stream(format string, args ...any)
+
+	// -------------------------------------------------------------------------
+	// Logon logs a message at Logon level.
+	Logon(format string, args ...any)
+
+	// -------------------------------------------------------------------------
+	// Logout logs a message at Logout level.
+	Logout(format string, args ...any)
+
+	// -------------------------------------------------------------------------
+	// Trade logs a message at Trade level.
+	Trade(format string, args ...any)
+
+	// -------------------------------------------------------------------------
+	// Schedule logs a message at Schedule level.
+	Schedule(format string, args ...any)
+
+	// -------------------------------------------------------------------------
+	// Report logs a message at Report level.
+	Report(format string, args ...any)
+
+	// -------------------------------------------------------------------------
 	// Log logs a message at a specific level.
 	Log(level models.Level, format string, args ...any)
+
+	// -------------------------------------------------------------------------
+	// SetLevel sets the current log level.
+	SetLevel(level models.Level)
 
 	// -------------------------------------------------------------------------
 	// Close flushes any buffered logs and closes the handler.

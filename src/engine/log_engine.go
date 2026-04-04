@@ -22,6 +22,12 @@ type LogEngine struct {
 }
 
 // -----------------------------------------------------------------------------
+// SetLevel sets the current log level.
+func (l *LogEngine) SetLevel(level models.Level) {
+	l.Level = level
+}
+
+// -----------------------------------------------------------------------------
 func (l *LogEngine) Close() {
 	if err := l.Sink.Close(); err != nil {
 		error_handler.ReportInternalError(l.Name, "sink.Close", err, "")
@@ -72,9 +78,15 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 }
 
 // -----------------------------------------------------------------------------
-func (l *LogEngine) Debug(format string, args ...any)   { l.Log(models.LevelDebug, format, args...) }
-func (l *LogEngine) Info(format string, args ...any)    { l.Log(models.LevelInfo, format, args...) }
-func (l *LogEngine) Warning(format string, args ...any) { l.Log(models.LevelWarning, format, args...) }
+func (l *LogEngine) Debug(format string, args ...any)    { l.Log(models.LevelDebug, format, args...) }
+func (l *LogEngine) Info(format string, args ...any)     { l.Log(models.LevelInfo, format, args...) }
+func (l *LogEngine) Stream(format string, args ...any)   { l.Log(models.LevelStream, format, args...) }
+func (l *LogEngine) Logon(format string, args ...any)    { l.Log(models.LevelLogon, format, args...) }
+func (l *LogEngine) Logout(format string, args ...any)   { l.Log(models.LevelLogout, format, args...) }
+func (l *LogEngine) Trade(format string, args ...any)    { l.Log(models.LevelTrade, format, args...) }
+func (l *LogEngine) Schedule(format string, args ...any) { l.Log(models.LevelSchedule, format, args...) }
+func (l *LogEngine) Report(format string, args ...any)   { l.Log(models.LevelReport, format, args...) }
+func (l *LogEngine) Warning(format string, args ...any)  { l.Log(models.LevelWarning, format, args...) }
 func (l *LogEngine) Error(format string, args ...any)   { l.Log(models.LevelError, format, args...) }
 func (l *LogEngine) Critical(format string, args ...any) {
 	l.Log(models.LevelCritical, format, args...)
