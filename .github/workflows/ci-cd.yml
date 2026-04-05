@@ -9,8 +9,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  GOPROXY: direct
-  GONOSUMDB: github.com/Bastien-Antigravity/*
+  GOPRIVATE: github.com/Bastien-Antigravity/*
 
 jobs:
   test-and-lint:
