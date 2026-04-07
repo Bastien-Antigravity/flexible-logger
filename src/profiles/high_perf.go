@@ -24,12 +24,17 @@ func NewHighPerfLogger(name string, config *distributed_config.Config) interface
 	// 1. Network (Async)
 	nm := network_manager.NewNetworkManager()
 
-	if config.Capabilities.LogServer == nil {
+	type ServerCap struct {
+		IP   string `json:"ip"`
+		Port string `json:"port"`
+	}
+	var lsCap ServerCap
+	if err := config.GetCapability("log_server", &lsCap); err != nil || lsCap.IP == "" {
 		fmt.Fprintf(os.Stderr, "HighPerfLogger: Logger configuration missing\n")
 		os.Exit(1)
 	}
-	ipPtr := &config.Capabilities.LogServer.IP
-	portPtr := &config.Capabilities.LogServer.Port
+	ipPtr := &lsCap.IP
+	portPtr := &lsCap.Port
 
 	// Default public IP (as pointer to handle dynamic update requirement, though static here for now)
 	publicIP := "127.0.0.1"
@@ -48,12 +53,13 @@ func NewHighPerfLogger(name string, config *distributed_config.Config) interface
 	logger := factory.CreateLogEngine(name, models.LevelInfo, networkSink).(*engine.LogEngine)
 
 	// 3. Notifier (Async)
-	if config.Capabilities.NotifServer == nil {
+	var nsCap ServerCap
+	if err := config.GetCapability("notif_server", &nsCap); err != nil || nsCap.IP == "" {
 		fmt.Fprintf(os.Stderr, "HighPerfLogger: Notification configuration missing\n")
 		os.Exit(1)
 	}
-	notifIpPtr := &config.Capabilities.NotifServer.IP
-	notifPortPtr := &config.Capabilities.NotifServer.Port
+	notifIpPtr := &nsCap.IP
+	notifPortPtr := &nsCap.Port
 
 	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP)
 

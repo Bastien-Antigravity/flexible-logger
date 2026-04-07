@@ -25,17 +25,18 @@ func main() {
 	defer stopNotif()
 
 	// Override Config with Mock Addresses
-	if distConf.Capabilities.LogServer == nil {
-		panic("Config error: LogServer capability missing. Check your YAML tags (should be log_server).")
+	// Override Config with Mock Addresses
+	if distConf.Capabilities == nil {
+		distConf.Capabilities = make(map[string]interface{})
 	}
-	distConf.Capabilities.LogServer.IP = logIp
-	distConf.Capabilities.LogServer.Port = logPort
-
-	if distConf.Capabilities.NotifServer == nil {
-		panic("Config error: NotifServer capability missing. Check your YAML tags (should be notif_server).")
+	distConf.Capabilities["log_server"] = map[string]interface{}{
+		"ip":   logIp,
+		"port": logPort,
 	}
-	distConf.Capabilities.NotifServer.IP = notifIp
-	distConf.Capabilities.NotifServer.Port = notifPort
+	distConf.Capabilities["notif_server"] = map[string]interface{}{
+		"ip":   notifIp,
+		"port": notifPort,
+	}
 
 	prodLog := profiles.NewHighPerfLogger("BenchApp", distConf)
 

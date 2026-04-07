@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 )
 
 // -----------------------------------------------------------------------------
@@ -78,15 +78,17 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 }
 
 // -----------------------------------------------------------------------------
-func (l *LogEngine) Debug(format string, args ...any)    { l.Log(models.LevelDebug, format, args...) }
-func (l *LogEngine) Info(format string, args ...any)     { l.Log(models.LevelInfo, format, args...) }
-func (l *LogEngine) Stream(format string, args ...any)   { l.Log(models.LevelStream, format, args...) }
-func (l *LogEngine) Logon(format string, args ...any)    { l.Log(models.LevelLogon, format, args...) }
-func (l *LogEngine) Logout(format string, args ...any)   { l.Log(models.LevelLogout, format, args...) }
-func (l *LogEngine) Trade(format string, args ...any)    { l.Log(models.LevelTrade, format, args...) }
-func (l *LogEngine) Schedule(format string, args ...any) { l.Log(models.LevelSchedule, format, args...) }
-func (l *LogEngine) Report(format string, args ...any)   { l.Log(models.LevelReport, format, args...) }
-func (l *LogEngine) Warning(format string, args ...any)  { l.Log(models.LevelWarning, format, args...) }
+func (l *LogEngine) Debug(format string, args ...any)  { l.Log(models.LevelDebug, format, args...) }
+func (l *LogEngine) Info(format string, args ...any)   { l.Log(models.LevelInfo, format, args...) }
+func (l *LogEngine) Stream(format string, args ...any) { l.Log(models.LevelStream, format, args...) }
+func (l *LogEngine) Logon(format string, args ...any)  { l.Log(models.LevelLogon, format, args...) }
+func (l *LogEngine) Logout(format string, args ...any) { l.Log(models.LevelLogout, format, args...) }
+func (l *LogEngine) Trade(format string, args ...any)  { l.Log(models.LevelTrade, format, args...) }
+func (l *LogEngine) Schedule(format string, args ...any) {
+	l.Log(models.LevelSchedule, format, args...)
+}
+func (l *LogEngine) Report(format string, args ...any)  { l.Log(models.LevelReport, format, args...) }
+func (l *LogEngine) Warning(format string, args ...any) { l.Log(models.LevelWarning, format, args...) }
 func (l *LogEngine) Error(format string, args ...any)   { l.Log(models.LevelError, format, args...) }
 func (l *LogEngine) Critical(format string, args ...any) {
 	l.Log(models.LevelCritical, format, args...)
