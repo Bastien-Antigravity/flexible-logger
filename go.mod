@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.2
-	github.com/Bastien-Antigravity/distributed-config v1.5.1
+	github.com/Bastien-Antigravity/distributed-config v1.5.2
 	github.com/Bastien-Antigravity/safe-socket v1.5.0
 )
 
