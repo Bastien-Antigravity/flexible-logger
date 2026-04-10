@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
@@ -33,7 +34,9 @@ func NewNetworkManager() *NetworkManager {
 // -----------------------------------------------------------------------------
 // EstablishConnection attempts a single connection to the resolved address.
 func (nm *NetworkManager) EstablishConnection(ip, port, publicIP *string, profile string) (io.WriteCloser, error) {
-	address := fmt.Sprintf("%s:%s", *ip, *port)
+	cleanIP := strings.Trim(*ip, "\"")
+	cleanPort := strings.Trim(*port, "\"")
+	address := fmt.Sprintf("%s:%s", cleanIP, cleanPort)
 	return safesocket.Create(profile, address, *publicIP, "client", true)
 }
 
@@ -51,7 +54,9 @@ func (nm *NetworkManager) ConnectWithRetry(ip, port, publicIP *string, profile s
 	}
 
 	// Try initial connection
-	address := fmt.Sprintf("%s:%s", *ip, *port) // Keep address for logging
+	cleanIP := strings.Trim(*ip, "\"")
+	cleanPort := strings.Trim(*port, "\"")
+	address := fmt.Sprintf("%s:%s", cleanIP, cleanPort) // Keep address for logging
 	var err error
 	for i := 0; i < nm.MaxRetries; i++ {
 		conn, err := nm.EstablishConnection(ip, port, publicIP, profile)
