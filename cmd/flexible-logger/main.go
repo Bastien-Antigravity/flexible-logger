@@ -30,4 +30,3 @@ func main() {
 	fmt.Printf("Wrote 1_000_000 logs in %v\n", time.Since(start))
 	fmt.Println("Check logs in ./log directory")
 }
-}
