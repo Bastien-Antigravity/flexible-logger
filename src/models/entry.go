@@ -33,22 +33,8 @@ type LogEntry struct {
 // -----------------------------------------------------------------------------
 // Reset clears the LogEntry for reuse.
 func (e *LogEntry) Reset() {
-	e.Timestamp = time.Time{}
-	e.Level = LevelNotSet
-	e.Message = ""
-	e.Hostname = ""
-	e.LoggerName = ""
-	e.Module = ""
-	e.Filename = ""
-	e.FunctionName = ""
-	e.LineNumber = ""
-	e.ProcessID = ""
-	e.ProcessName = ""
-	e.ThreadID = ""
-	e.ThreadName = ""
-	e.StackTrace = ""
-	e.ServiceName = ""
-	e.PathName = ""
+	// Zero out all fields in one optimized operation
+	*e = LogEntry{}
 
 	// Reset refCount to 1 (owned by whoever got it from pool)
 	atomic.StoreInt32(&e.refCount, 1)

@@ -2,6 +2,9 @@ package engine
 
 import (
 	"fmt"
+	"path/filepath"
+	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
@@ -19,12 +22,25 @@ type LogEngine struct {
 	Name        string
 	Hostname    string
 	ServiceName string
+
+	// Metadata configuration
+	ProcessID           int
+	ProcessName         string
+	CollectCallerInfo   bool // If true, collect caller info for ALL levels. If false, only for Error/Critical.
+	CallerSkip          int  // Optional offset to skip more frames (for wrapper libraries)
+	AlwaysCollectCaller bool // (Redundant if we use logic below, let's keep it simple)
 }
 
 // -----------------------------------------------------------------------------
 // SetLevel sets the current log level.
 func (l *LogEngine) SetLevel(level models.Level) {
 	l.Level = level
+}
+
+// -----------------------------------------------------------------------------
+// SetCallerSkip sets the number of stack frames to skip.
+func (l *LogEngine) SetCallerSkip(skip int) {
+	l.CallerSkip = skip
 }
 
 // -----------------------------------------------------------------------------
@@ -49,6 +65,31 @@ func (l *LogEngine) getEntry(level models.Level, msg string) *models.LogEntry {
 	e.LoggerName = l.Name
 	e.Hostname = l.Hostname
 	e.ServiceName = l.ServiceName
+
+	// Static Metadata
+	e.ProcessID = strconv.Itoa(l.ProcessID)
+	e.ProcessName = l.ProcessName
+
+	// Dynamic Metadata (Caller Info)
+	// Smart/Selective: Always on for Error/Critical, or if explicitly enabled for all levels
+	if l.CollectCallerInfo || level >= models.LevelError {
+		// Default skip is 3: getEntry -> Log -> Info/Debug/etc. -> User Code
+		// Add CallerSkip to handle wrapping libraries
+		pc, file, line, ok := runtime.Caller(3 + l.CallerSkip)
+		if ok {
+			e.Filename = filepath.Base(file) // Recommendation 1A: Short Filename
+			e.LineNumber = strconv.Itoa(line)
+			if fn := runtime.FuncForPC(pc); fn != nil {
+				e.FunctionName = filepath.Base(fn.Name())
+			}
+			e.PathName = file // Keep relative/full path in PathName field just in case
+		}
+	} else {
+		e.Filename = "source-context"
+		e.LineNumber = "0"
+		e.FunctionName = "runtime-caller-skipped"
+	}
+
 	return e
 }
 

@@ -2,7 +2,6 @@ package serializers
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 )
@@ -18,10 +17,13 @@ func NewTextSerializer() *TextSerializer {
 
 // -----------------------------------------------------------------------------
 func (s *TextSerializer) Serialize(entry *models.LogEntry) ([]byte, error) {
-	// Format: [TIMESTAMP] [LEVEL] LOGGER: MESSAGE\n
-	str := fmt.Sprintf("[%s] [%d] %s: %s\n",
-		entry.Timestamp.UTC().Format(time.RFC3339),
-		entry.Level,
+	// Format: [TIMESTAMP] [LEVEL] [PID] [FILE:LINE] LOGGER: MESSAGE\n
+	str := fmt.Sprintf("[%s] [%-8s] [%s] [%s:%s] %s: %s\n",
+		entry.Timestamp.UTC().Format("2006-01-02 15:04:05.000"),
+		entry.Level.String(),
+		entry.ProcessID,
+		entry.Filename,
+		entry.LineNumber,
 		entry.LoggerName,
 		entry.Message,
 	)

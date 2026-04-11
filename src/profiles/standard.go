@@ -30,12 +30,12 @@ func NewStandardLogger(name string, config *distributed_config.Config) interface
 	// 2. File (Sync)
 	logPath := helpers.GetDefaultLogPath()
 	var fileSink interfaces.Sink
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "StandardLogger: Failed to open log file %s: %v\n", logPath, err)
 		os.Exit(1)
 	} else {
-		fileSink = sink.NewWriterSink(f, serializers.NewCapnpSerializer())
+		fileSink = sink.NewWriterSink(f, serializers.NewTextSerializer())
 	}
 
 	// 3. Network (Async)
@@ -47,7 +47,7 @@ func NewStandardLogger(name string, config *distributed_config.Config) interface
 		Port string `json:"port"`
 	}
 	var lsCap ServerCap
-	if err := config.GetCapability("log_server", &lsCap); err != nil || lsCap.IP == "" {
+	if err := config.GetCapability("log-server", &lsCap); err != nil || lsCap.IP == "" {
 		fmt.Fprintf(os.Stderr, "StandardLogger: Logger configuration missing\n")
 		os.Exit(1)
 	}
@@ -70,7 +70,7 @@ func NewStandardLogger(name string, config *distributed_config.Config) interface
 	multi := sink.NewMultiSink(consoleSink, fileSink, networkSink)
 
 	// 5. Engine
-	logger := factory.CreateLogEngine(name, models.LevelInfo, multi).(*engine.LogEngine)
+	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true).(*engine.LogEngine)
 
 	// 6. Notifier (Async)
 	// RemoteNotifier handles its own connection/retry logic.

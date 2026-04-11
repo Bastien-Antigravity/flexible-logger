@@ -38,5 +38,5 @@ func NewDevelLogger(name string) interfaces.Logger {
 
 	// 4. Wrappers
 	// SyncPooledSink is obsolete. MultiSink and children handle lifecycle via ref counting.
-	return factory.CreateLogEngine(name, models.LevelDebug, multi)
+	return factory.CreateLogEngine(name, models.LevelDebug, multi, true)
 }

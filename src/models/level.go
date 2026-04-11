@@ -71,7 +71,7 @@ func ParseLevel(s string) Level {
 		return LevelSchedule
 	case "REPORT":
 		return LevelReport
-	case "WARNING", "WARN":
+	case "WARNING":
 		return LevelWarning
 	case "ERROR":
 		return LevelError

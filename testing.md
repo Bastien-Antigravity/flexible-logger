@@ -40,7 +40,13 @@ The test suite is designed to ensure the reliability, performance, and thread-sa
 - **Coverage**:
     - Basic initialization and configuration of the `NetworkManager`.
 
-### 6. Mock Infrastructure
+### 6. Log Server Connectivity Tool
+- **File**: `cmd/test-log-server/main.go`
+- **Role**:
+    - A standalone client used to verify connectivity to a real `log-server` at `127.0.0.2:9020`.
+    - Includes `connection_test.go` for automated integration and benchmark testing against external servers.
+
+### 7. Mock Infrastructure
 - **File**: `src/test_utils/mock_server.go`
 - **Role**:
     - **`StartMockServer`**: Provides a lightweight TCP sink that discards data. 
@@ -64,7 +70,9 @@ go test -race ./...
 All mock implementations (`MockSink`, `MockNotifier`) are thread-safe using `sync.Mutex`.
 
 ### Benchmarks & Integration Tests
-The project includes a high-performance benchmark that doubles as an integration test:
+The project includes several tools for performance and connectivity testing:
+
+#### 1. Internal Benchmark
 ```bash
 go run cmd/test/main.go
 ```
@@ -72,6 +80,16 @@ This test:
 1.  Starts two local mock servers (Logs and Notifications).
 2.  Initializes a `HighPerfLogger` pointing to these mocks.
 3.  Logs 1,000,000 messages and measures throughput (logs/sec).
+
+#### 2. Log Server Client & Benchmark
+```bash
+# Run standalone connectivity test
+go run cmd/test-log-server/main.go
+
+# Run connectivity unit test and benchmark
+go test -v ./cmd/test-log-server/...
+go test -v -bench=. ./cmd/test-log-server/...
+```
 
 ## Diagnostics & Internal Reporting
 

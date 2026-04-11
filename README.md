@@ -9,6 +9,8 @@ A high-performance, zero-allocation, asynchronous logging library for Go, design
 *   **Structured & Binary**: Native support for **Cap'n Proto** serialization.
 *   **Network Logging**: Reliable TCP logging with auto-reconnection (`NetworkManager`).
 *   **Notifications**: Asynchronous alert system (`RemoteNotifier`) for warnings and errors.
+*   **Automatic Metadata**: Automatically captures `ProcessID`, `Hostname`, `Filename`, and `LineNumber`.
+*   **Smart Caller Info**: Selective metadata collection (always on for errors) to preserve high performance.
 *   **Flexible Config**: Hot-swappable configurations via `distributed-config`.
 
 ## Profiles
@@ -49,6 +51,15 @@ The library provides pre-configured profiles for common use cases:
 *   **Behavior**: Similar to `NoLockLogger` (Fully Async).
 *   **Notifier**: Uses a **Local Notifier** (Channel) instead of sending alerts over the network.
 *   **API**: Exposes `SetLocalNotifQueue(chan *models.NotifMessage)` to bind the alert stream.
+
+## Metadata & Performance
+
+The logger automatically enriches every log entry with system metadata. To balance detail with extreme performance, we use a **Smart Collection** policy:
+
+*   **Static Metadata (Always On)**: `ProcessID`, `ProcessName`, and `Hostname` are cached at startup and added to every log with zero performance impact.
+*   **Dynamic Metadata (Selective)**: Caller information (`Filename`, `LineNumber`, `FunctionName`) is captured using `runtime.Caller`.
+    *   **HighPerf/Standard Profiles**: Only captures source info for **Warning**, **Error** and **Critical** logs. Standard `Info` logs remain lightning fast.
+    *   **Development Profile**: Captures source info for **all** log levels to aid debugging.
 
 ## Usage
 

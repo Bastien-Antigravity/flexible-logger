@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Bastien-Antigravity/flexible-logger/src/profiles"
-
 	distributed_config "github.com/Bastien-Antigravity/distributed-config"
+	"github.com/Bastien-Antigravity/flexible-logger/src/profiles"
 )
 
 // -----------------------------------------------------------------------------
@@ -18,15 +17,17 @@ func main() {
 
 	// 3. High Performance Logger (Async everything)
 	fmt.Println("\n--- High Perf Logger ---")
-	perfLog := profiles.NewHighPerfLogger("PerfApp2", distConf)
+	perfLog := profiles.NewStandardLogger("mini", distConf)
+
+	x := 1_000
 
 	start := time.Now()
-	for i := 0; i < 1_000_000; i++ {
+	for i := 0; i < x; i++ {
 		perfLog.Info("HighPerf log message %d", i)
 	}
 
 	// Close flushing async buffer
 	perfLog.Close()
-	fmt.Printf("Wrote 1_000_000 logs in %v\n", time.Since(start))
+	fmt.Printf("Wrote %d logs in %v\n", x, time.Since(start))
 	fmt.Println("Check logs in ./log directory")
 }

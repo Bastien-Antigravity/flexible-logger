@@ -62,6 +62,10 @@ type Logger interface {
 	SetLevel(level models.Level)
 
 	// -------------------------------------------------------------------------
+	// SetCallerSkip sets the number of stack frames to skip when detecting source info.
+	SetCallerSkip(skip int)
+
+	// -------------------------------------------------------------------------
 	// Close flushes any buffered logs and closes the handler.
 	Close()
 }

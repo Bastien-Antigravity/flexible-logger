@@ -73,7 +73,7 @@ func NewNoLockLogger(name string, config *distributed_config.Config) interfaces.
 	multi := sink.NewMultiSink(asyncConsole, asyncFile, networkSink)
 
 	// 5. Engine
-	logger := factory.CreateLogEngine(name, models.LevelInfo, multi).(*engine.LogEngine)
+	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, false).(*engine.LogEngine)
 
 	// 6. Notifier (Async)
 	var nsCap ServerCap

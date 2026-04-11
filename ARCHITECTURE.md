@@ -66,6 +66,8 @@ The central entry point. It handles:
 *   **Printf-style API**: All log methods accept `(format string, args ...any)`, formatting the message internally via `fmt.Sprintf`.
 *   **Pooling**: Retrieves `LogEntry` objects from a `sync.Pool`.
 *   **Filtering**: Checks log levels (Debug, Info, etc.) before processing.
+*   **Metadata Enrichment**: Enriches entries with `Hostname`, `ProcessID`, and `ProcessName`. 
+*   **Smart Caller Discovery**: Conditionally uses `runtime.Caller` to find the source file and line number based on the logger's profile and the message's level.
 *   **Routing**: Passes valid entries to the configured `Sink` and `Notifier`.
 
 ### 2. Sinks (`src/sink`)
