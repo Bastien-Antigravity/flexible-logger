@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
+	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 	notifie_schema "github.com/Bastien-Antigravity/flexible-logger/src/schemas/notifie_msg"
 	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
 
@@ -27,7 +27,7 @@ type RemoteNotifier struct {
 // -----------------------------------------------------------------------------
 
 func NewRemoteNotifier(ip, port, publicIP *string) *RemoteNotifier {
-	nm := conn_manager.NewNetworkManager()
+	nm := conn_manager.NewNetworkManager(-1, 200, 5000, 2000, 2.0, 0.1)
 	nm.OnError = error_handler.ReportInternalError
 
 	rn := &RemoteNotifier{

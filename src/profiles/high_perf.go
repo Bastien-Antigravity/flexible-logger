@@ -5,14 +5,14 @@ import (
 	"os"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/engine"
+	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	"github.com/Bastien-Antigravity/flexible-logger/src/factory"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 	"github.com/Bastien-Antigravity/flexible-logger/src/notifier"
 	"github.com/Bastien-Antigravity/flexible-logger/src/serializers"
-	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
-	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
 	"github.com/Bastien-Antigravity/flexible-logger/src/sink"
+	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
 
 	distributed_config "github.com/Bastien-Antigravity/distributed-config"
 )
@@ -23,7 +23,7 @@ import (
 // - Notif (Async)
 func NewHighPerfLogger(name string, config *distributed_config.Config) interfaces.Logger {
 	// 1. Network (Async)
-	nm := conn_manager.NewNetworkManager()
+	nm := conn_manager.NewNetworkManager(-1, 200, 5000, 2000, 2.0, 0.1)
 	nm.OnError = error_handler.ReportInternalError
 
 	type ServerCap struct {

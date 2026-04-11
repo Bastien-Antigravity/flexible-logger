@@ -5,16 +5,13 @@ go 1.25.3
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.2
 	github.com/Bastien-Antigravity/distributed-config v1.6.0
-	github.com/Bastien-Antigravity/safe-socket v1.7.0
-	github.com/Bastien-Antigravity/microservice-toolbox v0.0.0
+	github.com/Bastien-Antigravity/microservice-toolbox/go v1.0.3
 )
 
-replace github.com/Bastien-Antigravity/microservice-toolbox => ../microservice-toolbox/go
-
 require (
+	github.com/Bastien-Antigravity/safe-socket v1.7.0 // indirect
 	github.com/colega/zeropool v0.0.0-20230505084239-6fb4a4f75381 // indirect
 	github.com/edsrzf/mmap-go v1.2.0 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
