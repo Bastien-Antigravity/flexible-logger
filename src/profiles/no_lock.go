@@ -9,9 +9,10 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/helpers"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	"github.com/Bastien-Antigravity/flexible-logger/src/network_manager"
 	"github.com/Bastien-Antigravity/flexible-logger/src/notifier"
 	"github.com/Bastien-Antigravity/flexible-logger/src/serializers"
+	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
+	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
 	"github.com/Bastien-Antigravity/flexible-logger/src/sink"
 
 	distributed_config "github.com/Bastien-Antigravity/distributed-config"
@@ -40,7 +41,8 @@ func NewNoLockLogger(name string, config *distributed_config.Config) interfaces.
 	asyncFile := sink.NewAsyncSink(fileSink, 4096)
 
 	// 3. Network (Async)
-	nm := network_manager.NewNetworkManager()
+	nm := conn_manager.NewNetworkManager()
+	nm.OnError = error_handler.ReportInternalError
 
 	type ServerCap struct {
 		IP   string `json:"ip"`

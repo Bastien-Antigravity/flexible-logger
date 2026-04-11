@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	"github.com/Bastien-Antigravity/flexible-logger/src/network_manager"
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	notifie_schema "github.com/Bastien-Antigravity/flexible-logger/src/schemas/notifie_msg"
+	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
 
 	capnp "capnproto.org/go/capnp/v3"
 )
@@ -21,18 +21,21 @@ type RemoteNotifier struct {
 	publicIP   *string
 	notifChan  chan *models.NotifMessage
 	wg         sync.WaitGroup
-	netManager *network_manager.NetworkManager
+	netManager *conn_manager.NetworkManager
 }
 
 // -----------------------------------------------------------------------------
 
 func NewRemoteNotifier(ip, port, publicIP *string) *RemoteNotifier {
+	nm := conn_manager.NewNetworkManager()
+	nm.OnError = error_handler.ReportInternalError
+
 	rn := &RemoteNotifier{
 		ip:         ip,
 		port:       port,
 		publicIP:   publicIP,
 		notifChan:  make(chan *models.NotifMessage, 1000),
-		netManager: network_manager.NewNetworkManager(),
+		netManager: nm,
 	}
 	rn.wg.Add(1)
 	go rn.worker()

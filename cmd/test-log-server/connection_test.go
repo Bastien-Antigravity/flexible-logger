@@ -5,7 +5,6 @@ import (
 	"time"
 
 	distributed_config "github.com/Bastien-Antigravity/distributed-config"
-	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/profiles"
 	"github.com/Bastien-Antigravity/flexible-logger/src/test_utils"
 )

@@ -8,37 +8,23 @@ The test suite is designed to ensure the reliability, performance, and thread-sa
 
 ## Test Categories
 
-### 1. Core Logging Engine
-- **File**: `src/engine/log_engine_test.go`
-- **Coverage**: 
-    - Log level filtering (ensuring only logs above the threshold are processed).
-    - Entry retrieval and recycling via `sync.Pool`.
-    - Correct dispatching of log entries to sinks.
-    - Notification triggers for high-priority levels (Warning and Error).
+## Testing Strategy
 
-### 2. Sink Implementations
-- **File**: `src/sink/sink_test.go`
-- **Coverage**:
-    - **`WriterSink`**: Verifies serialization and writing to an `io.Writer`.
-    - **`AsyncSink`**: Tests asynchronous processing using buffered channels and worker goroutines.
-    - **`MultiSink`**: Ensures log entries are correctly fanned out to multiple destinations.
+The `flexible-logger` uses a three-tier testing strategy to ensure high performance and reliability:
 
-### 3. Notification System
-- **File**: `src/notifier/notifier_test.go`
-- **Coverage**:
-    - **`LocalNotifier`**: Verifies channel-based notification delivery.
-    - **`RemoteNotifier`**: Tests basic message queuing for remote delivery.
+### 1. Unit Testing (Isolated)
+We use the **Table-Driven Test** pattern to verify logical components in isolation without needing real IO.
+*   **Profiles**: [profiles_test.go](file:///Users/imac/Desktop/Bastien-Antigravity/flexible-logger/src/profiles/profiles_test.go) automatically verifies that standalone profiles boot and log correctly in one loop.
+*   **Engine**: [log_engine_test.go](file:///Users/imac/Desktop/Bastien-Antigravity/flexible-logger/src/engine/log_engine_test.go) uses **Mocks** to verify filtering, metadata, and notification triggers.
 
-### 4. Logger Profiles
-- **File**: `src/profiles/profiles_test.go`
-- **Coverage**:
-    - Initialization of `Minimal` and `Devel` logger profiles.
-    - Basic verification that initialized loggers can write messages without errors.
+### 2. Integration Testing (Cooperative)
+These tests verify that the logger correctly interacts with the wider ecosystem.
+*   **Config integration**: Ensuring that capabilities from `distributed-config` (like `log-server` IP/Port) are correctly mapped to sinks.
+*   **Network Manager**: Verifying TCP connection, retry logic, and blocking/non-blocking behavior.
 
-### 5. Network Management
-- **File**: `src/network_manager/network_manager_test.go`
-- **Coverage**:
-    - Basic initialization and configuration of the `NetworkManager`.
+### 3. Verification & Benchmarking
+*   **Performance**: Run `go test -v -bench=. ./...` to verify zero-allocation goals.
+*   **Sanity Checks**: Use [verify_premium_features.go](file:///Users/imac/Desktop/Bastien-Antigravity/flexible-logger/scratch/verify_premium_features.go) for human-readable verification of JSON, Audit, and Sampling.
 
 ### 6. Log Server Connectivity Tool
 - **File**: `cmd/test-log-server/main.go`
@@ -81,15 +67,12 @@ This test:
 2.  Initializes a `HighPerfLogger` pointing to these mocks.
 3.  Logs 1,000,000 messages and measures throughput (logs/sec).
 
-#### 2. Log Server Client & Benchmark
+#### 3. Premium Features Verification
 ```bash
-# Run standalone connectivity test
-go run cmd/test-log-server/main.go
-
-# Run connectivity unit test and benchmark
-go test -v ./cmd/test-log-server/...
-go test -v -bench=. ./cmd/test-log-server/...
+# Verify JSON, Audit, and Sampling behavior
+go run scratch/verify_premium_features.go
 ```
+This script validates that the `CloudNative` profile correctly produces JSON lines and that the `SamplingRate` logic effectively reduces log volume without dropping critical errors.
 
 ## Diagnostics & Internal Reporting
 
