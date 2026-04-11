@@ -5,22 +5,29 @@ import (
 	"time"
 
 	distributed_config "github.com/Bastien-Antigravity/distributed-config"
+	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/profiles"
+	"github.com/Bastien-Antigravity/flexible-logger/src/test_utils"
 )
 
 func TestLogServerConnection(t *testing.T) {
-	// Setup Config
-	distConf := distributed_config.New("test-cli")
+	// 1. Setup Mock Server to avoid connection refusal
+	// Rename to notif-mock as per user request
+	logIp, logPort, stopLog := test_utils.StartMockServer("notif-mock")
+	defer stopLog()
+
+	// 2. Setup Config
+	distConf := distributed_config.New("standalone")
 	if distConf.Capabilities == nil {
 		distConf.Capabilities = make(map[string]interface{})
 	}
 	distConf.Capabilities["log_server"] = map[string]interface{}{
-		"ip":   "127.0.0.2",
-		"port": "9020",
+		"ip":   logIp,
+		"port": logPort,
 	}
 	distConf.Capabilities["notif_server"] = map[string]interface{}{
-		"ip":   "127.0.0.2",
-		"port": "10080",
+		"ip":   logIp,
+		"port": logPort,
 	}
 
 	// Initialize Logger - This will attempt to connect
@@ -38,18 +45,22 @@ func TestLogServerConnection(t *testing.T) {
 }
 
 func BenchmarkLogServerThroughput(b *testing.B) {
+	// Setup Mock
+	logIp, logPort, stopLog := test_utils.StartMockServer("notif-mock")
+	defer stopLog()
+
 	// Setup Config
-	distConf := distributed_config.New("bench-cli")
+	distConf := distributed_config.New("standalone")
 	if distConf.Capabilities == nil {
 		distConf.Capabilities = make(map[string]interface{})
 	}
 	distConf.Capabilities["log_server"] = map[string]interface{}{
-		"ip":   "127.0.0.2",
-		"port": "9020",
+		"ip":   logIp,
+		"port": logPort,
 	}
 	distConf.Capabilities["notif_server"] = map[string]interface{}{
-		"ip":   "127.0.0.2",
-		"port": "10080",
+		"ip":   logIp,
+		"port": logPort,
 	}
 
 	logger := profiles.NewHighPerfLogger("BenchmarkClient", distConf)

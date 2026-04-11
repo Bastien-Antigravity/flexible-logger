@@ -92,9 +92,10 @@ func (m *MockNotifier) IsClosed() bool {
 func TestLogEngine_Levels(t *testing.T) {
 	mockSink := &MockSink{}
 	engine := &LogEngine{
-		Sink:  mockSink,
-		Level: models.LevelInfo,
-		Name:  "TestLogger",
+		Sink:         mockSink,
+		Level:        models.LevelInfo,
+		Name:         "TestLogger",
+		SamplingRate: 1.0,
 	}
 
 	// 1. Debug (Should be filtered)
@@ -104,12 +105,15 @@ func TestLogEngine_Levels(t *testing.T) {
 	}
 
 	// 2. Info (Should pass)
-	engine.Info("Info message")
-	if mockSink.WriteCount != 1 {
-		t.Errorf("Expected 1 write for Info level, got %d", mockSink.WriteCount)
+	if mockSink.GetWriteCount() != 1 {
+		t.Errorf("Expected 1 write for Info level, got %d", mockSink.GetWriteCount())
 	}
-	if mockSink.LastEntry.Message != "Info message" {
-		t.Errorf("Expected message 'Info message', got '%s'", mockSink.LastEntry.Message)
+	lastEntry := mockSink.GetLastEntry()
+	if lastEntry == nil {
+		t.Fatal("Expected LastEntry not to be nil")
+	}
+	if lastEntry.Message != "Info message" {
+		t.Errorf("Expected message 'Info message', got '%s'", lastEntry.Message)
 	}
 
 	// 3. Error (Should pass and trigger notifier)
@@ -131,8 +135,9 @@ func TestLogEngine_Close(t *testing.T) {
 	mockSink := &MockSink{}
 	mockNotif := &MockNotifier{}
 	engine := &LogEngine{
-		Sink:     mockSink,
-		Notifier: mockNotif,
+		Sink:         mockSink,
+		Notifier:     mockNotif,
+		SamplingRate: 1.0,
 	}
 
 	engine.Close()
@@ -179,10 +184,14 @@ func TestLogEngine_MetadataFallback(t *testing.T) {
 		Sink:              mockSink,
 		Level:             models.LevelInfo,
 		CollectCallerInfo: false, // Disabled
+		SamplingRate:      1.0,
 	}
 
 	engine.Info("Hello")
 	entry := mockSink.GetLastEntry()
+	if entry == nil {
+		t.Fatal("Expected entry not to be nil")
+	}
 
 	if entry.Filename != "source-context" {
 		t.Errorf("Expected fallback filename 'source-context', got '%s'", entry.Filename)

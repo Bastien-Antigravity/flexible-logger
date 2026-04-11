@@ -103,7 +103,8 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 
 	// Sampling logic
 	// We only sample non-critical logs (below Warning) if rate is set
-	if l.SamplingRate < 1.0 && level < models.LevelWarning {
+	// Note: 0.0 is treated as 100% (not set) for backward compatibility with zero-initialized structs
+	if l.SamplingRate > 0 && l.SamplingRate < 1.0 && level < models.LevelWarning {
 		if rand.Float64() > l.SamplingRate {
 			return
 		}
