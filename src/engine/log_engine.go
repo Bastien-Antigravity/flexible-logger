@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"math/rand"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -28,6 +29,7 @@ type LogEngine struct {
 	ProcessName         string
 	CollectCallerInfo   bool // If true, collect caller info for ALL levels. If false, only for Error/Critical.
 	CallerSkip          int  // Optional offset to skip more frames (for wrapper libraries)
+	SamplingRate        float64
 	AlwaysCollectCaller bool // (Redundant if we use logic below, let's keep it simple)
 }
 
@@ -98,6 +100,15 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 	if level < l.Level {
 		return
 	}
+
+	// Sampling logic
+	// We only sample non-critical logs (below Warning) if rate is set
+	if l.SamplingRate < 1.0 && level < models.LevelWarning {
+		if rand.Float64() > l.SamplingRate {
+			return
+		}
+	}
+
 	msg := fmt.Sprintf(format, args...)
 	e := l.getEntry(level, msg)
 	if err := l.Sink.Write(e); err != nil {

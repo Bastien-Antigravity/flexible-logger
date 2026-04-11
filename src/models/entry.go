@@ -9,22 +9,22 @@ import (
 // LogEntry represents a single log message.
 // It is designed to be pooled to reduce allocations.
 type LogEntry struct {
-	Timestamp    time.Time
-	Level        Level
-	Message      string
-	Hostname     string
-	LoggerName   string
-	Module       string
-	Filename     string
-	FunctionName string
-	LineNumber   string
-	ProcessID    string
-	ProcessName  string
-	ThreadID     string
-	ThreadName   string
-	StackTrace   string
-	ServiceName  string
-	PathName     string
+	Timestamp    time.Time `json:"timestamp"`
+	Level        Level     `json:"level"`
+	Message      string    `json:"message"`
+	Hostname     string    `json:"hostname"`
+	LoggerName   string    `json:"loggerName"`
+	Module       string    `json:"module,omitempty"`
+	Filename     string    `json:"filename"`
+	FunctionName string    `json:"functionName"`
+	LineNumber   string    `json:"lineNumber"`
+	ProcessID    string    `json:"processID"`
+	ProcessName  string    `json:"processName"`
+	ThreadID     string    `json:"threadID,omitempty"`
+	ThreadName   string    `json:"threadName,omitempty"`
+	StackTrace   string    `json:"stackTrace,omitempty"`
+	ServiceName  string    `json:"serviceName,omitempty"`
+	PathName     string    `json:"pathName,omitempty"`
 
 	// refCount manages the lifecycle of the entry across multiple sinks
 	refCount int32

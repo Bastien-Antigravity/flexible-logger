@@ -18,5 +18,5 @@ func NewMinimalLogger(name string) interfaces.Logger {
 	// Buffer size can be small for minimal
 	asyncConsole := sink.NewAsyncSink(consoleSink, 1024)
 
-	return factory.CreateLogEngine(name, models.LevelInfo, asyncConsole, false)
+	return factory.CreateLogEngine(name, models.LevelInfo, asyncConsole, false, 1.0)
 }

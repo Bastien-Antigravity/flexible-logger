@@ -66,13 +66,14 @@ The central entry point. It handles:
 *   **Printf-style API**: All log methods accept `(format string, args ...any)`, formatting the message internally via `fmt.Sprintf`.
 *   **Pooling**: Retrieves `LogEntry` objects from a `sync.Pool`.
 *   **Filtering**: Checks log levels (Debug, Info, etc.) before processing.
+*   **Sampling**: If configured, probabilistically drops non-critical logs to protect system resources.
 *   **Metadata Enrichment**: Enriches entries with `Hostname`, `ProcessID`, and `ProcessName`. 
 *   **Smart Caller Discovery**: Conditionally uses `runtime.Caller` to find the source file and line number based on the logger's profile and the message's level.
 *   **Routing**: Passes valid entries to the configured `Sink` and `Notifier`.
 
 ### 2. Sinks (`src/sink`)
 Sinks form a pipeline to handle log data.
-*   **`WriterSink`**: Wraps an `io.Writer`. Serializes the entry (e.g., to Cap'n Proto) and writes bytes.
+*   **`WriterSink`**: Wraps an `io.Writer`. Serializes the entry (e.g., to Cap'n Proto or JSON) and writes bytes.
 *   **`AsyncSink`**: Decouples the application from IO. Uses a buffered channel. If the buffer is full, it drops logs to prevent blocking.
 *   **`MultiSink`**: Fan-out pattern. Sends one log entry to multiple destinations (e.g., File + Network).
 *   **Memory Management**: Sinks accept ownership of a `LogEntry` and are responsible for calling `Release()` to return it to the pool.
@@ -88,3 +89,15 @@ A separate subsystem for high-priority alerts (Warnings/Errors).
 *   **Independent Channel**: Does not block the main log stream.
 *   **Protocol**: Uses a dedicated lightweight protocol (`tcp-hello` profile) to send alerts to a monitoring server.
 *   **Resilience**: Uses `ManagedConnection` for auto-reconnection.
+
+## Reliability & Testability
+
+### 1. Best-Effort vs. Audit-Secure
+The architecture is designed to handle the fundamental trade-off between application performance and log delivery reliability:
+*   **Best-Effort (Default)**: Uses `AsyncSink` with buffered channels. If the buffer is full, logs are discarded to ensure the application never blocks. This is used by `HighPerf` and `Standard` (for network).
+*   **Audit-Secure**: Bypasses the `AsyncSink` to use direct, blocking writes to the `ManagedConnection`. This guarantees that the application waits until the remote server receives the data. Used by the `Audit` profile.
+
+### 2. Deterministic Testing
+The system is designed for 100% testability through:
+*   **Pluggable Interfaces**: Every component (Sink, Notifier, Serializer) is defined by an interface, allowing us to swap real IO with high-speed **Mocks** in unit tests.
+*   **Table-Driven Testing**: Our profile verification uses Go's table-driven pattern to ensure that all configurations (from Minimal to Audit) behave correctly under a unified testing logic.

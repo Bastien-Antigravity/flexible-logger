@@ -70,7 +70,7 @@ func NewStandardLogger(name string, config *distributed_config.Config) interface
 	multi := sink.NewMultiSink(consoleSink, fileSink, networkSink)
 
 	// 5. Engine
-	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true).(*engine.LogEngine)
+	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0).(*engine.LogEngine)
 
 	// 6. Notifier (Async)
 	// RemoteNotifier handles its own connection/retry logic.

@@ -49,8 +49,8 @@ func NewHighPerfLogger(name string, config *distributed_config.Config) interface
 		os.Exit(1)
 	}
 
-	// 2. Engine
-	logger := factory.CreateLogEngine(name, models.LevelInfo, networkSink, false).(*engine.LogEngine)
+	// 5. Engine
+	logger := factory.CreateLogEngine(name, models.LevelInfo, networkSink, false, 1.0).(*engine.LogEngine)
 
 	// 3. Notifier (Async)
 	var nsCap ServerCap

@@ -2,33 +2,69 @@ package profiles
 
 import (
 	"testing"
+	"time"
+
+	"github.com/Bastien-Antigravity/flexible-logger/src/engine"
+	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
+	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 )
 
-func TestMinimalLogger(t *testing.T) {
-	// Minimal Logger doesn't use config or network, easier to test initialization.
-	logger := NewMinimalLogger("TestMinimal")
-	if logger == nil {
-		t.Fatal("Expected NewMinimalLogger to return a logger instance")
+// TestAllProfiles verifies that basic standalone profiles boot up and log correctly.
+func TestAllProfiles(t *testing.T) {
+	tests := []struct {
+		name    string
+		factory func() interfaces.Logger
+	}{
+		{"Minimal", func() interfaces.Logger { return NewMinimalLogger("test-min") }},
+		{"Developer", func() interfaces.Logger { return NewDevelLogger("test-dev") }},
 	}
-	defer logger.Close()
 
-	// Should not crash on basic log
-	logger.Info("Testing minimal logger")
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger := tt.factory()
+			if logger == nil {
+				t.Fatalf("%s: initialization failed", tt.name)
+			}
+			defer logger.Close()
 
-func TestDevelLogger(t *testing.T) {
-	// Devel Logger is also simpler.
-	logger := NewDevelLogger("TestDevel")
-	if logger == nil {
-		t.Fatal("Expected NewDevelLogger to return a logger instance")
+			// Check that it doesn't crash on standard logging
+			logger.Info("Checking %s profile", tt.name)
+			logger.Error("Checking error path for %s", tt.name)
+		})
 	}
-	defer logger.Close()
-
-	logger.Info("Testing devel logger")
 }
 
-func TestStandardLogger_InvalidConfig(t *testing.T) {
-	// We can't easily test success without a real network/file, 
-	// but we can verify it handles nil config or missing fields.
-	// However, it calls os.Exit(1), which is hard to test in unit tests without sub-processes.
+// SlowSink for testing Audit blocking
+type SlowSink struct {
+	Delay time.Duration
 }
+
+func (s *SlowSink) Write(e *models.LogEntry) error {
+	time.Sleep(s.Delay)
+	e.Release()
+	return nil
+}
+func (s *SlowSink) Close() error { return nil }
+
+func TestAuditLogger_Blocking(t *testing.T) {
+	// We use the LogEngine directly with a SlowSink to simulate NewAuditLogger behavior
+	// since NewAuditLogger requires a network connection.
+	sink := &SlowSink{Delay: 100 * time.Millisecond}
+	logger := engine.LogEngine{
+		Sink:         sink,
+		Level:        models.LevelInfo,
+		SamplingRate: 1.0,
+	}
+
+	start := time.Now()
+	logger.Info("Audit message")
+	elapsed := time.Since(start)
+
+	if elapsed < 100*time.Millisecond {
+		t.Errorf("Audit mode did not block! Expected > 100ms, got %v", elapsed)
+	}
+}
+
+// Note: Profiles like Standard, Audit, and CloudNative require a valid
+// distributed_config.Config and a network connection, so they are typically
+// tested using "Integration Tests" with a local mock server.

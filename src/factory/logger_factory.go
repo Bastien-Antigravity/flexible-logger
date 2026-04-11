@@ -11,7 +11,7 @@ import (
 
 // -----------------------------------------------------------------------------
 // CreateLogEngine creates a new fully configured LogEngine instance.
-func CreateLogEngine(name string, level models.Level, sink interfaces.Sink, collectCallerInfo bool) interfaces.Logger {
+func CreateLogEngine(name string, level models.Level, sink interfaces.Sink, collectCallerInfo bool, samplingRate float64) interfaces.Logger {
 	hostname, _ := os.Hostname()
 	return &engine.LogEngine{
 		Name:              name,
@@ -21,5 +21,6 @@ func CreateLogEngine(name string, level models.Level, sink interfaces.Sink, coll
 		ProcessID:         os.Getpid(),
 		ProcessName:       filepath.Base(os.Args[0]),
 		CollectCallerInfo: collectCallerInfo,
+		SamplingRate:      samplingRate,
 	}
 }

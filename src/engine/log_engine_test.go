@@ -143,3 +143,66 @@ func TestLogEngine_Close(t *testing.T) {
 		t.Error("Expected notifier to be closed")
 	}
 }
+
+func TestLogEngine_Sampling(t *testing.T) {
+	mockSink := &MockSink{}
+	engine := &LogEngine{
+		Sink:         mockSink,
+		Level:        models.LevelDebug,
+		SamplingRate: 0.5, // Keep 50%
+	}
+
+	total := 10000
+	for i := 0; i < total; i++ {
+		engine.Info("Test")
+	}
+
+	count := mockSink.GetWriteCount()
+	// Statistical check: should be roughy 5000. We use a range of +/- 500 (10 sigma) to ensure stability.
+	if count < 4500 || count > 5500 {
+		t.Errorf("Sampling logic seems off. Expected ~5000 logs, got %d", count)
+	}
+
+	// Critical logs should NEVER be sampled
+	mockSink.WriteCount = 0
+	for i := 0; i < 100; i++ {
+		engine.Error("Critical error")
+	}
+	if mockSink.GetWriteCount() != 100 {
+		t.Errorf("Error logs were sampled! Expected 100, got %d", mockSink.GetWriteCount())
+	}
+}
+
+func TestLogEngine_MetadataFallback(t *testing.T) {
+	mockSink := &MockSink{}
+	engine := &LogEngine{
+		Sink:              mockSink,
+		Level:             models.LevelInfo,
+		CollectCallerInfo: false, // Disabled
+	}
+
+	engine.Info("Hello")
+	entry := mockSink.GetLastEntry()
+
+	if entry.Filename != "source-context" {
+		t.Errorf("Expected fallback filename 'source-context', got '%s'", entry.Filename)
+	}
+	if entry.FunctionName != "runtime-caller-skipped" {
+		t.Errorf("Expected fallback function 'runtime-caller-skipped', got '%s'", entry.FunctionName)
+	}
+}
+
+func BenchmarkLogEngine_NoSampling(b *testing.B) {
+	mockSink := &MockSink{}
+	engine := &LogEngine{
+		Sink:              mockSink,
+		Level:             models.LevelInfo,
+		CollectCallerInfo: false,
+		SamplingRate:      1.0,
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		engine.Info("Benchmark message %d", i)
+	}
+}

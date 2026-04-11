@@ -9,48 +9,31 @@ A high-performance, zero-allocation, asynchronous logging library for Go, design
 *   **Structured & Binary**: Native support for **Cap'n Proto** serialization.
 *   **Network Logging**: Reliable TCP logging with auto-reconnection (`NetworkManager`).
 *   **Notifications**: Asynchronous alert system (`RemoteNotifier`) for warnings and errors.
-*   **Automatic Metadata**: Automatically captures `ProcessID`, `Hostname`, `Filename`, and `LineNumber`.
-*   **Smart Caller Info**: Selective metadata collection (always on for errors) to preserve high performance.
+*   **Automatic Metadata**: Captures `ProcessID`, `Hostname`, `Filename`, and `LineNumber`.
+*   **Smart Sampling**: Probabilistic log dropping for high-traffic (never drops Errors).
+*   **Audit Trail**: Zero-drop blocking mode for critical compliance logs.
 *   **Flexible Config**: Hot-swappable configurations via `distributed-config`.
 
-## Profiles
+## Logger Profiles
 
-The library provides pre-configured profiles for common use cases:
+The library provides several pre-configured profiles tailored for different environments.
 
-### 1. High Performance (`NewHighPerfLogger`)
-*   **Target**: Production, High-Load.
-*   **Behavior**: Fully Asynchronous.
-*   **Sinks**: Network Sink (Async).
-*   **Reliability**: Drops logs if buffer is full (favors application performance over log completeness).
+| Profile | Distributed Config | Target Use Case | IO Behavior | Format (File) | Network Logs | **Log Drop Policy** |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Developer** | **No** | Local Coding | Synchronous | Human Text | Disabled | **Never Drops** |
+| **Standard** | **Yes** | Staging / Prod | Mixed | Human Text | **Enabled** (Async) | **Zero Local Loss** (Drops Net) |
+| **Cloud Native**| **Yes** | Kubernetes/Cloud | Fully Async | **JSON** | **Enabled** (Async) | **Best Effort** (Drops on Saturation) |
+| **Audit** | **Yes** | Compliance/Legal | **Blocking** | Human Text | **Enabled** (**Blocking**) | **Never Drops (Secure)** |
+| **High Perf** | **Yes** | High Load | Async Net | *None* | **Enabled** (Async) | **Best Effort** (Drops on Saturation) |
+| **No Lock** | **Yes** | Concurrency | Fully Async | Binary Capnp | **Enabled** (Async) | **Best Effort** (Drops All) |
+| **Minimal** | **No** | Simple CLIs | Async | *None* | Disabled | **Best Effort** (Drops Console) |
 
-### 2. Standard (`NewStandardLogger`)
-*   **Target**: General Production / Staging.
-*   **Behavior**: Mixed Sync/Async.
-*   **Sinks**: Console (Sync), File (Sync), Network (Async).
-*   **Reliability**: Blocks on File/Console writes to ensure local persistence.
+### Profile Details
 
-### 3. No Lock (`NewNoLockLogger`)
-*   **Target**: Extreme Concurrency.
-*   **Behavior**: Fully Asynchronous (everything buffered).
-*   **Sinks**: Console (Async), File (Async), Network (Async).
-*   **Reliability**: Non-blocking, best-effort delivery.
-
-### 4. Developer (`NewDevelLogger`)
-*   **Target**: Local Development.
-*   **Behavior**: Synchronous.
-*   **Sinks**: Console (Text), File (Text/Readable).
-
-### 5. Minimal (`NewMinimalLogger`)
-*   **Target**: Lightweight Applications / CLIs.
-*   **Behavior**: Async Console only.
-*   **Sinks**: Console (Async).
-*   **Dependencies**: No external config or detailed file logging needed.
-
-### 6. Notification Logger (`NewNotifLogger`)
-*   **Target**: Services that need custom handling of alerts (e.g., Notification Servers).
-*   **Behavior**: Similar to `NoLockLogger` (Fully Async).
-*   **Notifier**: Uses a **Local Notifier** (Channel) instead of sending alerts over the network.
-*   **API**: Exposes `SetLocalNotifQueue(chan *models.NotifMessage)` to bind the alert stream.
+*   **Audit (`NewAuditLogger`)**: Guaranteed delivery. The application waits until the network send is confirmed by the OS.
+*   **Cloud Native (`NewCloudLogger`)**: Recommended for Kubernetes. Outputs structured JSON to stdout for easy collection by Fluentd/Datadog.
+*   **Standard (`NewStandardLogger`)**: The most balanced profile. Local logs are readable and reliable, while network logs are handled in the background.
+*   **High Performance (`NewHighPerfLogger`)**: Minimal overhead. Only sends logs over the network.
 
 ## Metadata & Performance
 
