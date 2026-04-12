@@ -105,6 +105,7 @@ func TestLogEngine_Levels(t *testing.T) {
 	}
 
 	// 2. Info (Should pass)
+	engine.Info("Info message")
 	if mockSink.GetWriteCount() != 1 {
 		t.Errorf("Expected 1 write for Info level, got %d", mockSink.GetWriteCount())
 	}
