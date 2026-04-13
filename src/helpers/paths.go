@@ -16,7 +16,6 @@ func GetDefaultLogPath() string {
 		return "./logs/application.log"
 	}
 
-	exeDir := filepath.Dir(exePath)
 	exeName := filepath.Base(exePath)
 
 	// Remove extension from exeName (e.g. main.exe -> main)
@@ -25,7 +24,13 @@ func GetDefaultLogPath() string {
 		exeName = strings.TrimSuffix(exeName, ext)
 	}
 
-	logDir := filepath.Join(exeDir, "logs")
+	// Use Current Working Directory (CWD) for logs instead of EXE dir.
+	// This avoids permission issues when the EXE is in a protected folder (e.g. Program Files).
+	wd, err := os.Getwd()
+	if err != nil {
+		wd = "."
+	}
+	logDir := filepath.Join(wd, "logs")
 
 	// Ensure log directory exists
 	_ = os.MkdirAll(logDir, 0755)

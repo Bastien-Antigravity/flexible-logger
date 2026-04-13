@@ -27,7 +27,9 @@ type RemoteNotifier struct {
 // -----------------------------------------------------------------------------
 
 func NewRemoteNotifier(ip, port, publicIP *string) *RemoteNotifier {
-	nm := conn_manager.NewNetworkManager(-1, 200, 5000, 2000, 2.0, 0.1)
+	// We use nil for logger here as this is the foundational logger itself, 
+	// but we move to the modernized WithLogger constructor for consistency.
+	nm := conn_manager.NewNetworkManagerWithLogger(-1, 200, 5000, 2000, 2.0, 0.1, nil)
 	nm.OnError = error_handler.ReportInternalError
 
 	rn := &RemoteNotifier{

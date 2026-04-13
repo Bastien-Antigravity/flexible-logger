@@ -49,7 +49,7 @@ func NewStandardLogger(name string, config *distributed_config.Config) interface
 		Port string `json:"port"`
 	}
 	var lsCap ServerCap
-	if err := config.GetCapability("log-server", &lsCap); err != nil || lsCap.IP == "" {
+	if err := config.GetCapability("log_server", &lsCap); err != nil || lsCap.IP == "" {
 		fmt.Fprintf(os.Stderr, "StandardLogger: Logger configuration missing\n")
 		os.Exit(1)
 	}
