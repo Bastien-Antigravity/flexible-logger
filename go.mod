@@ -1,11 +1,11 @@
 module github.com/Bastien-Antigravity/flexible-logger
 
-go 1.25.3
+go 1.25.4
 
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.2
-	github.com/Bastien-Antigravity/distributed-config v1.6.0
-	github.com/Bastien-Antigravity/microservice-toolbox/go v1.0.4
+	github.com/Bastien-Antigravity/distributed-config v1.6.2
+	github.com/Bastien-Antigravity/microservice-toolbox/go v1.0.5
 )
 
 require (
