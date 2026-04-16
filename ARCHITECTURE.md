@@ -1,3 +1,11 @@
+---
+microservice: flexible-logger
+type: architecture
+status: active
+tags:
+  - domain/observability
+---
+
 # Architecture
 
 This document describes the internal design of the Flexible Logger.

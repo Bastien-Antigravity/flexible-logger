@@ -1,3 +1,12 @@
+---
+microservice: flexible-logger
+type: repository
+status: active
+language: go
+tags:
+  - domain/observability
+---
+
 # Flexible Logger
 
 A high-performance, zero-allocation, asynchronous logging library for Go, designed for distributed systems.
