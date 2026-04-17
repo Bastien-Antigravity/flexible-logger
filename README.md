@@ -57,6 +57,7 @@ The logger automatically enriches every log entry with system metadata. To balan
 *   **Dynamic Metadata (Selective)**: Caller information (`Filename`, `LineNumber`, `FunctionName`) is captured using `runtime.Caller`.
     *   **HighPerf/Standard Profiles**: Only captures source info for **Warning**, **Error** and **Critical** logs. Standard `Info` logs remain lightning fast.
     *   **Development Profile**: Captures source info for **all** log levels to aid debugging.
+    *   **Remote Identification**: All operational profiles now explicitly identify themselves to the Log Server and Notif Server during the handshake. This ensures that the destination servers can categorize and alert based on the producing service name.
 
 ## Usage
 

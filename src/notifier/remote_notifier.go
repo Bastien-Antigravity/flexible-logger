@@ -19,6 +19,7 @@ type RemoteNotifier struct {
 	ip         *string
 	port       *string
 	publicIP   *string
+	appName    string
 	notifChan  chan *models.NotifMessage
 	wg         sync.WaitGroup
 	netManager *conn_manager.NetworkManager
@@ -26,7 +27,7 @@ type RemoteNotifier struct {
 
 // -----------------------------------------------------------------------------
 
-func NewRemoteNotifier(ip, port, publicIP *string) *RemoteNotifier {
+func NewRemoteNotifier(ip, port, publicIP *string, appName string) *RemoteNotifier {
 	// We use nil for logger here as this is the foundational logger itself, 
 	// but we move to the modernized WithLogger constructor for consistency.
 	nm := conn_manager.NewNetworkManagerWithLogger(-1, 200, 5000, 2000, 2.0, 0.1, nil)
@@ -36,6 +37,7 @@ func NewRemoteNotifier(ip, port, publicIP *string) *RemoteNotifier {
 		ip:         ip,
 		port:       port,
 		publicIP:   publicIP,
+		appName:    appName,
 		notifChan:  make(chan *models.NotifMessage, 1000),
 		netManager: nm,
 	}
@@ -72,7 +74,7 @@ func (rn *RemoteNotifier) worker() {
 	// Pointers are already verified (by caller ideally, or nil check here if overly cautious)
 	// But let's assume valid pointers passed from profile which does the check.
 
-	conn, err := rn.netManager.ConnectWithRetry(rn.ip, rn.port, rn.publicIP, "tcp-hello")
+	conn, err := rn.netManager.ConnectWithRetry(rn.ip, rn.port, rn.publicIP, "tcp-hello:"+rn.appName)
 	if err != nil {
 		error_handler.ReportInternalError("RemoteNotifier", "worker.connect", err, "")
 		return

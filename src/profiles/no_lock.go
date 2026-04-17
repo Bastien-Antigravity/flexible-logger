@@ -59,7 +59,7 @@ func NewNoLockLogger(name string, config *distributed_config.Config, useLocalNot
 	// Default public IP
 	publicIP := "127.0.0.1"
 
-	conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp")
+	conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp-hello:"+name)
 	var networkSink interfaces.Sink
 	if err == nil {
 		ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
@@ -95,7 +95,7 @@ func NewNoLockLogger(name string, config *distributed_config.Config, useLocalNot
 	notifIpPtr := &nsCap.IP
 	notifPortPtr := &nsCap.Port
 
-	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP)
+	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP, name)
 
 	return logger
 }

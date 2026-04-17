@@ -49,7 +49,7 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 		publicIP := "127.0.0.1"
 
 		// Use ConnectBlocking for Audit trail
-		conn := nm.ConnectBlocking(&lsCap.IP, &lsCap.Port, &publicIP, "tcp")
+		conn := nm.ConnectBlocking(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name)
 
 		// IMPORTANT: Wrap directly in WriterSink WITHOUT an AsyncSink wrapper.
 		// This makes the log.Info() call WAIT for the socket write to complete.
@@ -75,7 +75,7 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 		// Async is fine for notifs even in audit mode, as logs are the primary trail
 		var nsCap ServerCap
 		if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
-			logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP)
+			logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP, name)
 		}
 
 		return logger

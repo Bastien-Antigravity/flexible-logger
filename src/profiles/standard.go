@@ -53,14 +53,12 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 		fmt.Fprintf(os.Stderr, "StandardLogger: Logger configuration missing\n")
 		os.Exit(1)
 	}
-	ipPtr := &lsCap.IP
-	portPtr := &lsCap.Port
 
 	// Default public IP
 	publicIP := "127.0.0.1"
 
 	// Block until connected. ConnectBlocking returns io.WriteCloser.
-	conn := nm.ConnectBlocking(ipPtr, portPtr, &publicIP, "tcp")
+	conn := nm.ConnectBlocking(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name)
 
 	// Create WriterSink with CapnpSerializer
 	// sink.NewWriterSink(io.WriteCloser, Serializer)
@@ -93,7 +91,7 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 	notifIpPtr := &nsCap.IP
 	notifPortPtr := &nsCap.Port
 
-	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP)
+	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP, name)
 
 	return logger
 }

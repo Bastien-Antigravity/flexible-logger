@@ -41,7 +41,7 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 	// Default public IP (as pointer to handle dynamic update requirement, though static here for now)
 	publicIP := "127.0.0.1"
 
-	conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp")
+	conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp-hello:"+name)
 	var networkSink interfaces.Sink
 	if err == nil {
 		ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
@@ -72,7 +72,7 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 	notifIpPtr := &nsCap.IP
 	notifPortPtr := &nsCap.Port
 
-	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP)
+	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP, name)
 
 	return logger
 }

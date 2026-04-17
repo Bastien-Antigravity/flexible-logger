@@ -67,7 +67,7 @@ func NewNotifLogger(name string, config *distributed_config.Config, useLocalNoti
 	// Default public IP
 	publicIP := "127.0.0.1"
 
-	conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp")
+	conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp-hello:"+name)
 	var networkSink interfaces.Sink
 	if err == nil {
 		ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())

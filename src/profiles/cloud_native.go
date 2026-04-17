@@ -50,7 +50,7 @@ func NewCloudLogger(name string, config *distributed_config.Config, useLocalNoti
 	var lsCap ServerCap
 	if err := config.GetCapability("log-server", &lsCap); err == nil && lsCap.IP != "" {
 		publicIP := "127.0.0.1"
-		conn, err := nm.ConnectWithRetry(&lsCap.IP, &lsCap.Port, &publicIP, "tcp")
+		conn, err := nm.ConnectWithRetry(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name)
 		if err == nil {
 			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
 			networkSink := sink.NewAsyncSink(ns, 8192)
@@ -73,7 +73,7 @@ func NewCloudLogger(name string, config *distributed_config.Config, useLocalNoti
 
 			var nsCap ServerCap
 			if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
-				logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP)
+				logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP, name)
 			}
 
 			return logger

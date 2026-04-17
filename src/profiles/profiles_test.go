@@ -162,3 +162,78 @@ func TestNotifLogger_LocalQueue(t *testing.T) {
 	}
 }
 
+
+func TestProfile_AppNamePropagation(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+
+	addr := ln.Addr().String()
+	parts := strings.Split(addr, ":")
+	ip, port := parts[0], parts[1]
+
+	expectedName := "test-app-123"
+	detectedNameChan := make(chan string, 1)
+
+	go func() {
+		conn, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+
+		// Use the actual protocol logic to wait for initiation
+		// We wrap the raw net.Conn in a dummy TransportConnection for the protocol
+		// Wait, NewHelloProtocol expects interfaces.TransportConnection.
+		// We'll use a simplified version of WaitInitiation's logic since we don't have the wrapper here yet.
+		// Or easier: we know it's a FramedTCP, so we can just skip the 4-byte header and read the Capnp msg.
+		
+		// Actually, let's just use the WaitInitiation from safe-socket if possible.
+		// But WaitInitiation needs a TransportConnection...
+		// Let's do it manually to keep the test simple and independent of facade wrappers.
+		
+		header := make([]byte, 4)
+		_, _ = conn.Read(header) // FramedTCP length
+		
+		payload := make([]byte, 1024)
+		n, _ := conn.Read(payload)
+		
+		// We'll just check if the string exists in the raw payload for simplicity in this unit test
+		// as decoding Capnp without the full schema access in the test might be verbose.
+		if strings.Contains(string(payload[:n]), expectedName) {
+			detectedNameChan <- expectedName
+		}
+	}()
+
+	configData := &core.Config{
+		Capabilities: map[string]interface{}{
+			"log_server": map[string]interface{}{
+				"ip": ip,
+				"port": port,
+			},
+			"notif_server": map[string]interface{}{
+				"ip": ip,
+				"port": port,
+			},
+		},
+	}
+	cfg := &distributed_config.Config{Config: configData}
+
+	// This should trigger ConnectBlocking which sends the Hello handshake
+	logger := NewStandardLogger(expectedName, cfg, false)
+	if logger == nil {
+		t.Fatal("Failed to create StandardLogger")
+	}
+	defer logger.Close()
+
+	select {
+	case name := <-detectedNameChan:
+		if name != expectedName {
+			t.Errorf("Expected name %q to be sent, but it wasn't detected in handshake", expectedName)
+		}
+	case <-time.After(2 * time.Second):
+		t.Error("Timed out waiting for handshake with app name")
+	}
+}
