@@ -45,6 +45,9 @@ The library provides several pre-configured profiles tailored for different envi
 *   **Standard (`NewStandardLogger`)**: The most balanced profile. Local logs are readable and reliable, while network logs are handled in the background.
 *   **High Performance (`NewHighPerfLogger`)**: Minimal overhead. Only sends logs over the network.
 *   **Notif Logger (`NewNotifLogger`)**: Specialized for applications that need to react to errors programmatically. Provides a `SetLocalNotifQueue` method to pipe alerts into a Go channel.
+*   **Developer (`NewDevelLogger`)**: Synchronous and verbose. Captures source information (file/line) for all log levels. Ideal for local development.
+*   **Minimal (`NewMinimalLogger`)**: Lightweight asynchronous console logging. No network or file dependencies.
+*   **No Lock (`NewNoLockLogger`)**: Optimized for highly concurrent systems. Uses lock-free paths and Cap'n Proto binary serialization for maximum throughput.
 
 ## Metadata & Performance
 

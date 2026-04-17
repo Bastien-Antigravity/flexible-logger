@@ -16,6 +16,7 @@ The `flexible-logger` uses a three-tier testing strategy to ensure high performa
 We use the **Table-Driven Test** pattern to verify logical components in isolation without needing real IO.
 *   **Profiles**: [profiles_test.go](file:///Users/imac/Desktop/Bastien-Antigravity/flexible-logger/src/profiles/profiles_test.go) automatically verifies that standalone profiles boot and log correctly in one loop.
 *   **Engine**: [log_engine_test.go](file:///Users/imac/Desktop/Bastien-Antigravity/flexible-logger/src/engine/log_engine_test.go) uses **Mocks** to verify filtering, metadata, and notification triggers.
+*   **Local Reaction**: [profiles_test.go](file:///Users/imac/Desktop/Bastien-Antigravity/flexible-logger/src/profiles/profiles_test.go) includes `TestNotifLogger_LocalQueue`, which verifies that the `NotifLogger` correctly pipes alerts (Warnings/Errors) into a Go channel for in-process handling.
 
 ### 2. Integration Testing (Cooperative)
 These tests verify that the logger correctly interacts with the wider ecosystem.
