@@ -1,9 +1,13 @@
 package profiles
 
 import (
+	"net"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/Bastien-Antigravity/distributed-config"
+	"github.com/Bastien-Antigravity/distributed-config/src/core"
 	"github.com/Bastien-Antigravity/flexible-logger/src/engine"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
@@ -68,3 +72,93 @@ func TestAuditLogger_Blocking(t *testing.T) {
 // Note: Profiles like Standard, Audit, and CloudNative require a valid
 // distributed_config.Config and a network connection, so they are typically
 // tested using "Integration Tests" with a local mock server.
+
+func startTestServer(t *testing.T) (string, string, func()) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	
+	addr := ln.Addr().String()
+	parts := strings.Split(addr, ":")
+	ip := parts[0]
+	port := parts[1]
+	
+	stopChan := make(chan struct{})
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				select {
+				case <-stopChan:
+					return
+				default:
+					continue
+				}
+			}
+			go func(c net.Conn) {
+				defer c.Close()
+				// Read & Discard (Hello handshake simulation)
+				buf := make([]byte, 1024)
+				c.Read(buf)
+			}(conn)
+		}
+	}()
+	
+	return ip, port, func() {
+		close(stopChan)
+		ln.Close()
+	}
+}
+
+func TestNotifLogger_LocalQueue(t *testing.T) {
+	ip, port, stop := startTestServer(t)
+	defer stop()
+
+	// 1. Setup Mock Config with Capability
+	// Using the core struct directly to avoid complex strategy loading in tests
+	configData := &core.Config{
+		Capabilities: map[string]interface{}{
+			"log_server": map[string]interface{}{
+				"ip": ip,
+				"port": port,
+			},
+		},
+	}
+	cfg := &distributed_config.Config{Config: configData}
+
+	// 2. Instantiate NotifLogger
+	logger := NewNotifLogger("test-notif", cfg)
+	if logger == nil {
+		t.Fatal("Failed to create NotifLogger")
+	}
+	defer logger.Close()
+
+	// 3. Setup Local Queue
+	notifChan := make(chan *models.NotifMessage, 10)
+	logger.SetLocalNotifQueue(notifChan)
+
+	// 4. Trigger Notification (Error level)
+	expectedMsg := "Critical failure detected"
+	logger.Error(expectedMsg)
+
+	// 5. Verify Receipt with Timeout
+	select {
+	case msg := <-notifChan:
+		if msg.Message != expectedMsg {
+			t.Errorf("Expected message %q, got %q", expectedMsg, msg.Message)
+		}
+	case <-time.After(2 * time.Second):
+		t.Error("Timed out waiting for local notification")
+	}
+
+	// 6. Verify non-triggering Level (Info)
+	logger.Info("Normal operation")
+	select {
+	case msg := <-notifChan:
+		t.Errorf("Received unexpected notification for INFO level: %v", msg.Message)
+	case <-time.After(500 * time.Millisecond):
+		// Success: nothing received
+	}
+}
+
