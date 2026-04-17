@@ -38,7 +38,7 @@ func main() {
 		"port": notifPort,
 	}
 
-	prodLog := profiles.NewHighPerfLogger("BenchApp", distConf)
+	prodLog := profiles.NewHighPerfLogger("BenchApp", distConf, false)
 
 	count := 1_000_000
 	fmt.Printf("Logging %d messages...\n", count)

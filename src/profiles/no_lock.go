@@ -24,7 +24,7 @@ import (
 // - Local file (Async)
 // - Network (Async)
 // - Notif (Async)
-func NewNoLockLogger(name string, config *distributed_config.Config) interfaces.Logger {
+func NewNoLockLogger(name string, config *distributed_config.Config, useLocalNotif bool) interfaces.Logger {
 	// 1. Console (Async)
 	consoleSink := sink.NewConsoleSink()
 	asyncConsole := sink.NewAsyncSink(consoleSink, 1024)
@@ -77,7 +77,16 @@ func NewNoLockLogger(name string, config *distributed_config.Config) interfaces.
 	// 5. Engine
 	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, false, 1.0).(*engine.LogEngine)
 
-	// 6. Notifier (Async)
+	// 6. Notifier
+	if useLocalNotif {
+		localNotif := notifier.NewLocalNotifier()
+		logger.Notifier = localNotif
+		return &NotifLoggerWrapper{
+			Logger:        logger,
+			localNotifier: localNotif,
+		}
+	}
+
 	var nsCap ServerCap
 	if err := config.GetCapability("notif_server", &nsCap); err != nil || nsCap.IP == "" {
 		fmt.Fprintf(os.Stderr, "NoLockLogger: Notification configuration missing\n")

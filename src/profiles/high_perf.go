@@ -21,7 +21,7 @@ import (
 // NewHighPerfLogger creates a high performance logger with:
 // - Network (Async)
 // - Notif (Async)
-func NewHighPerfLogger(name string, config *distributed_config.Config) interfaces.Logger {
+func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalNotif bool) interfaces.Logger {
 	// 1. Network (Async)
 	nm := conn_manager.NewNetworkManager(-1, 200, 5000, 2000, 2.0, 0.1)
 	nm.OnError = error_handler.ReportInternalError
@@ -54,7 +54,16 @@ func NewHighPerfLogger(name string, config *distributed_config.Config) interface
 	// 5. Engine
 	logger := factory.CreateLogEngine(name, models.LevelInfo, networkSink, false, 1.0).(*engine.LogEngine)
 
-	// 3. Notifier (Async)
+	// 3. Notifier
+	if useLocalNotif {
+		localNotif := notifier.NewLocalNotifier()
+		logger.Notifier = localNotif
+		return &NotifLoggerWrapper{
+			Logger:        logger,
+			localNotifier: localNotif,
+		}
+	}
+
 	var nsCap ServerCap
 	if err := config.GetCapability("notif_server", &nsCap); err != nil || nsCap.IP == "" {
 		fmt.Fprintf(os.Stderr, "HighPerfLogger: Notification configuration missing\n")

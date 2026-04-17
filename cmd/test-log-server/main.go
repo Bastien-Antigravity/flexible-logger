@@ -33,7 +33,7 @@ func main() {
 }
 
 func test_func(distConf *distributed_config.Config) {
-	logger := profiles.NewNoLockLogger("TestLogServer", distConf)
+	logger := profiles.NewNoLockLogger("TestLogServer", distConf, false)
 	defer logger.Close()
 
 	// 3. Send Messages

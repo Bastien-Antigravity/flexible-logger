@@ -31,7 +31,7 @@ func TestLogServerConnection(t *testing.T) {
 
 	// Initialize Logger - This will attempt to connect
 	// Note: If the server is not running, this might fail depending on retry policy
-	logger := profiles.NewNoLockLogger("TestLogServer", distConf)
+	logger := profiles.NewNoLockLogger("TestLogServer", distConf, false)
 	defer logger.Close()
 
 	// Send a few messages
@@ -62,7 +62,7 @@ func BenchmarkLogServerThroughput(b *testing.B) {
 		"port": logPort,
 	}
 
-	logger := profiles.NewHighPerfLogger("BenchmarkClient", distConf)
+	logger := profiles.NewHighPerfLogger("BenchmarkClient", distConf, false)
 	defer logger.Close()
 
 	b.ResetTimer()

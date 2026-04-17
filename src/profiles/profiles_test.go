@@ -19,8 +19,8 @@ func TestAllProfiles(t *testing.T) {
 		name    string
 		factory func() interfaces.Logger
 	}{
-		{"Minimal", func() interfaces.Logger { return NewMinimalLogger("test-min") }},
-		{"Developer", func() interfaces.Logger { return NewDevelLogger("test-dev") }},
+		{"Minimal", func() interfaces.Logger { return NewMinimalLogger("test-min", false) }},
+		{"Developer", func() interfaces.Logger { return NewDevelLogger("test-dev", false) }},
 	}
 
 	for _, tt := range tests {
@@ -127,8 +127,8 @@ func TestNotifLogger_LocalQueue(t *testing.T) {
 	}
 	cfg := &distributed_config.Config{Config: configData}
 
-	// 2. Instantiate NotifLogger
-	logger := NewNotifLogger("test-notif", cfg)
+	// 2. Instantiate NotifLogger (Always use true for this profile)
+	logger := NewNotifLogger("test-notif", cfg, true)
 	if logger == nil {
 		t.Fatal("Failed to create NotifLogger")
 	}

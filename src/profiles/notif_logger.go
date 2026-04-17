@@ -33,7 +33,7 @@ func (nl *NotifLoggerWrapper) SetLocalNotifQueue(notifChan chan *models.NotifMes
 // -----------------------------------------------------------------------------
 
 // NewNotifLogger creates a logger similar to NoLockLogger but with LocalNotifier.
-func NewNotifLogger(name string, config *distributed_config.Config) *NotifLoggerWrapper {
+func NewNotifLogger(name string, config *distributed_config.Config, useLocalNotif bool) *NotifLoggerWrapper {
 	// 1. Console (Async)
 	consoleSink := sink.NewConsoleSink()
 	asyncConsole := sink.NewAsyncSink(consoleSink, 1024)

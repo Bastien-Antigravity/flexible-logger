@@ -24,7 +24,7 @@ import (
 // - Local file (Sync) - Path derived from executable or defaults
 // - Network (Async) - Address from Config
 // - Notif (Async) - Address from Config
-func NewStandardLogger(name string, config *distributed_config.Config) interfaces.Logger {
+func NewStandardLogger(name string, config *distributed_config.Config, useLocalNotif bool) interfaces.Logger {
 	// 1. Console (Sync)
 	consoleSink := sink.NewConsoleSink()
 
@@ -74,7 +74,16 @@ func NewStandardLogger(name string, config *distributed_config.Config) interface
 	// 5. Engine
 	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0).(*engine.LogEngine)
 
-	// 6. Notifier (Async)
+	// 6. Notifier
+	if useLocalNotif {
+		localNotif := notifier.NewLocalNotifier()
+		logger.Notifier = localNotif
+		return &NotifLoggerWrapper{
+			Logger:        logger,
+			localNotifier: localNotif,
+		}
+	}
+
 	// RemoteNotifier handles its own connection/retry logic.
 	var nsCap ServerCap
 	if err := config.GetCapability("notif_server", &nsCap); err != nil || nsCap.IP == "" {

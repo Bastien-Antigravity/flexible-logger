@@ -17,7 +17,7 @@ func main() {
 
 	// 3. High Performance Logger (Async everything)
 	fmt.Println("\n--- High Perf Logger ---")
-	perfLog := profiles.NewStandardLogger("mini", distConf)
+	perfLog := profiles.NewStandardLogger("mini", distConf, false)
 
 	x := 1_000
 

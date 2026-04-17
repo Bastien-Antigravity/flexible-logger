@@ -15,20 +15,20 @@ func main() {
 
 	// 1. Test Cloud Native (JSON)
 	fmt.Println("\n1. Initializing CloudNative Logger (JSON)...")
-	cloudLog := profiles.NewCloudLogger("CloudApp", config)
+	cloudLog := profiles.NewCloudLogger("CloudApp", config, false)
 	cloudLog.Info("This should appear as a JSON line in stdout and ./log/")
 	cloudLog.Close()
 
 	// 2. Test Audit Logger (Blocking)
 	fmt.Println("\n2. Initializing Audit Logger (Blocking)...")
 	// Note: This will fallback to local sinks if Log Server is not running on 127.0.0.2
-	auditLog := profiles.NewAuditLogger("AuditApp", config)
+	auditLog := profiles.NewAuditLogger("AuditApp", config, false)
 	auditLog.Warning("Audit trail: Secure transaction #999 initiated")
 	auditLog.Close()
 
 	// 3. Test Sampling Logic
 	fmt.Println("\n3. Testing Sampling Logic (50% rate)...")
-	standardLog := profiles.NewStandardLogger("SampleApp", config)
+	standardLog := profiles.NewStandardLogger("SampleApp", config, false)
 
 	// Access the engine to set sampling rate manually for the test
 	// In production, this would be set via the factory or config

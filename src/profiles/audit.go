@@ -23,7 +23,7 @@ import (
 // - Local file (Sync)
 // - Network (Sync / Blocking) -> Ensures server receipt before returning
 // - Notif (Async)
-func NewAuditLogger(name string, config *distributed_config.Config) interfaces.Logger {
+func NewAuditLogger(name string, config *distributed_config.Config, useLocalNotif bool) interfaces.Logger {
 	// 1. Console (Sync)
 	consoleSink := sink.NewConsoleSink()
 
@@ -62,7 +62,17 @@ func NewAuditLogger(name string, config *distributed_config.Config) interfaces.L
 		// Audit logs NEVER use sampling (1.0 rate)
 		logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0).(*engine.LogEngine)
 
-		// 5. Notifier (Async is fine for notifs even in audit mode, as logs are the primary trail)
+		// 5. Notifier
+		if useLocalNotif {
+			localNotif := notifier.NewLocalNotifier()
+			logger.Notifier = localNotif
+			return &NotifLoggerWrapper{
+				Logger:        logger,
+				localNotifier: localNotif,
+			}
+		}
+
+		// Async is fine for notifs even in audit mode, as logs are the primary trail
 		var nsCap ServerCap
 		if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
 			logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP)

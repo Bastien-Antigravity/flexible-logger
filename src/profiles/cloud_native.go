@@ -23,7 +23,7 @@ import (
 // - Local file (Async JSON)
 // - Network (Async Capnp) -> For centralized Log Server
 // - Notif (Async)
-func NewCloudLogger(name string, config *distributed_config.Config) interfaces.Logger {
+func NewCloudLogger(name string, config *distributed_config.Config, useLocalNotif bool) interfaces.Logger {
 	// 1. Console (Async JSON)
 	consoleSink := sink.NewConsoleSink()
 	jsonConsole := sink.NewWriterSink(os.Stdout, serializers.NewJSONSerializer())
@@ -62,6 +62,15 @@ func NewCloudLogger(name string, config *distributed_config.Config) interfaces.L
 			logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0).(*engine.LogEngine)
 
 			// 5. Notifier
+			if useLocalNotif {
+				localNotif := notifier.NewLocalNotifier()
+				logger.Notifier = localNotif
+				return &NotifLoggerWrapper{
+					Logger:        logger,
+					localNotifier: localNotif,
+				}
+			}
+
 			var nsCap ServerCap
 			if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
 				logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP)
@@ -73,5 +82,16 @@ func NewCloudLogger(name string, config *distributed_config.Config) interfaces.L
 
 	// Fallback if network config missing
 	multi := sink.NewMultiSink(asyncConsole, fileSink)
-	return factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0)
+	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0).(*engine.LogEngine)
+
+	if useLocalNotif {
+		localNotif := notifier.NewLocalNotifier()
+		logger.Notifier = localNotif
+		return &NotifLoggerWrapper{
+			Logger:        logger,
+			localNotifier: localNotif,
+		}
+	}
+
+	return logger
 }
