@@ -60,9 +60,12 @@ flowchart TD
     
     subgraph Notif [Notifications]
         direction TB
-        Engine -. "Warning/Error" .-> Notifier[RemoteNotifier]:::alert
-        Notifier -- Channel --> NotifWorker([Notifier Worker]):::alert
+        Engine -. "Warning/Error" .-> Notifier[Notifier Interface]:::alert
+        Notifier -- "Remote" --> Remote[RemoteNotifier]:::alert
+        Notifier -- "Local" --> Local[LocalNotifier]:::alert
+        Remote -- Channel --> NotifWorker([Notifier Worker]):::alert
         NotifWorker --> NotifConn["ManagedConnection (Hello)"]:::alert
+        Local -- "Go Channel" --> App
     end
     style Notif fill:#ffebee,stroke:#ffcdd2,stroke-width:2px,color:#b71c1c
 ```
@@ -92,11 +95,11 @@ Handles robust network communication.
 *   **`ManagedConnection`**: A wrapper around the raw socket. It intercepts `Write()` calls; if the underlying connection is broken, it automatically attempts to reconnect (blocking or async depending on config) and retries the write.
 *   **`EstablishConnection`**: Centralized logic for IP/Port resolution and socket creation.
 
-### 4. Remote Notifier (`src/notifier`)
+### 4. Notifiers (`src/notifier`)
 A separate subsystem for high-priority alerts (Warnings/Errors).
 *   **Independent Channel**: Does not block the main log stream.
-*   **Protocol**: Uses a dedicated lightweight protocol (`tcp-hello` profile) to send alerts to a monitoring server.
-*   **Resilience**: Uses `ManagedConnection` for auto-reconnection.
+*   **`RemoteNotifier`**: Uses a dedicated lightweight protocol (`tcp-hello` profile) to send alerts to a monitoring server. Uses `ManagedConnection` for auto-reconnection.
+*   **`LocalNotifier`**: Allows the application to subscribe to alerts via a local Go channel. This is used by the `NotifLogger` profile to enable programmatic reactions to errors.
 
 ## Reliability & Testability
 

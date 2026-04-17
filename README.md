@@ -36,6 +36,7 @@ The library provides several pre-configured profiles tailored for different envi
 | **High Perf** | **Yes** | High Load | Async Net | *None* | **Enabled** (Async) | **Best Effort** (Drops on Saturation) |
 | **No Lock** | **Yes** | Concurrency | Fully Async | Binary Capnp | **Enabled** (Async) | **Best Effort** (Drops All) |
 | **Minimal** | **No** | Simple CLIs | Async | *None* | Disabled | **Best Effort** (Drops Console) |
+| **Notif Logger** | **Yes** | Real-time Apps | Fully Async | Capnp / Human | **Enabled** (Async) | **Local Reaction Queue** |
 
 ### Profile Details
 
@@ -43,6 +44,7 @@ The library provides several pre-configured profiles tailored for different envi
 *   **Cloud Native (`NewCloudLogger`)**: Recommended for Kubernetes. Outputs structured JSON to stdout for easy collection by Fluentd/Datadog.
 *   **Standard (`NewStandardLogger`)**: The most balanced profile. Local logs are readable and reliable, while network logs are handled in the background.
 *   **High Performance (`NewHighPerfLogger`)**: Minimal overhead. Only sends logs over the network.
+*   **Notif Logger (`NewNotifLogger`)**: Specialized for applications that need to react to errors programmatically. Provides a `SetLocalNotifQueue` method to pipe alerts into a Go channel.
 
 ## Metadata & Performance
 
@@ -80,6 +82,39 @@ func main() {
     // 4. Notifications (Warnings/Errors trigger this automatically if configured)
     logger.Warning("High memory usage: %d%%", 87)
 }
+```
+
+### Instantiation Examples
+
+Each profile is optimized for a specific scenario:
+
+```go
+import "github.com/Bastien-Antigravity/flexible-logger/src/profiles"
+
+// 1. Standard (Balanced)
+logger := profiles.NewStandardLogger("my-service", config)
+
+// 2. Cloud Native (JSON for Kubernetes)
+logger := profiles.NewCloudLogger("my-service", config)
+
+// 3. Audit (Strict Compliance - Blocking)
+logger := profiles.NewAuditLogger("my-service", config)
+
+// 4. High Perf (Network Only)
+logger := profiles.NewHighPerfLogger("my-service", config)
+
+// 5. No Lock (Binary Cap'n Proto)
+logger := profiles.NewNoLockLogger("my-service", config)
+
+// 6. Notif Logger (Local Event Reaction)
+notifLogger := profiles.NewNotifLogger("my-service", config)
+notifLogger.SetLocalNotifQueue(myNotifChannel) // React to errors in-process
+
+// 7. Minimal (Simple Console)
+logger := profiles.NewMinimalLogger("cli-app")
+
+// 8. Development (Verbose & Synchronous)
+logger := profiles.NewDevelLogger("dev-app")
 ```
 
 ```
