@@ -100,7 +100,7 @@ func startTestServer(t *testing.T) (string, string, func()) {
 				defer c.Close()
 				// Read & Discard (Hello handshake simulation)
 				buf := make([]byte, 1024)
-				c.Read(buf)
+				_, _ = c.Read(buf)
 			}(conn)
 		}
 	}()
