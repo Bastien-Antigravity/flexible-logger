@@ -39,7 +39,7 @@ func TestRemoteNotifier_Notify(t *testing.T) {
 	port := "9999"
 	publicIP := "127.0.0.1"
 	
-	rn := NewRemoteNotifier(&ip, &port, &publicIP)
+	rn := NewRemoteNotifier(&ip, &port, &publicIP, "test-app")
 	// We don't wait for connection here as it happens in a goroutine.
 	
 	msg := &models.NotifMessage{Message: "Remote Test"}
