@@ -74,8 +74,8 @@ func main() {
     // 1. Load Config
     config := distributed_config.New("standalone")
 
-    // 2. Initialize Logger
-    logger := profiles.NewHighPerfLogger("MyApp", config)
+    // 2. Initialize Logger (False: Suppression of remote NOTIF connects)
+    logger := profiles.NewHighPerfLogger("MyApp", config, false)
     defer logger.Close()
 
     // 3. Log with format strings
@@ -95,29 +95,29 @@ Each profile is optimized for a specific scenario:
 import "github.com/Bastien-Antigravity/flexible-logger/src/profiles"
 
 // 1. Standard (Balanced)
-logger := profiles.NewStandardLogger("my-service", config)
+logger := profiles.NewStandardLogger("my-service", config, false)
 
 // 2. Cloud Native (JSON for Kubernetes)
-logger := profiles.NewCloudLogger("my-service", config)
+logger := profiles.NewCloudLogger("my-service", config, false)
 
 // 3. Audit (Strict Compliance - Blocking)
-logger := profiles.NewAuditLogger("my-service", config)
+logger := profiles.NewAuditLogger("my-service", config, false)
 
 // 4. High Perf (Network Only)
-logger := profiles.NewHighPerfLogger("my-service", config)
+logger := profiles.NewHighPerfLogger("my-service", config, false)
 
 // 5. No Lock (Binary Cap'n Proto)
-logger := profiles.NewNoLockLogger("my-service", config)
+logger := profiles.NewNoLockLogger("my-service", config, false)
 
 // 6. Notif Logger (Local Event Reaction)
-notifLogger := profiles.NewNotifLogger("my-service", config)
+notifLogger := profiles.NewNotifLogger("my-service", config, true)
 notifLogger.SetLocalNotifQueue(myNotifChannel) // React to errors in-process
 
 // 7. Minimal (Simple Console)
-logger := profiles.NewMinimalLogger("cli-app")
+logger := profiles.NewMinimalLogger("cli-app", false)
 
 // 8. Development (Verbose & Synchronous)
-logger := profiles.NewDevelLogger("dev-app")
+logger := profiles.NewDevelLogger("dev-app", false)
 ```
 
 ```
