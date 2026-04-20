@@ -4,12 +4,12 @@ go 1.25.4
 
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.2
-	github.com/Bastien-Antigravity/distributed-config v1.6.4
+	github.com/Bastien-Antigravity/distributed-config v1.7.6
 	github.com/Bastien-Antigravity/microservice-toolbox/go v1.1.1
 )
 
 require (
-	github.com/Bastien-Antigravity/safe-socket v1.7.5 // indirect
+	github.com/Bastien-Antigravity/safe-socket v1.7.6 // indirect
 	github.com/colega/zeropool v0.0.0-20230505084239-6fb4a4f75381 // indirect
 	github.com/edsrzf/mmap-go v1.2.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
