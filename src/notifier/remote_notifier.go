@@ -6,7 +6,7 @@ import (
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	notifie_schema "github.com/Bastien-Antigravity/flexible-logger/src/schemas/notifie_msg"
+	notifier_schema "github.com/Bastien-Antigravity/flexible-logger/src/schemas/capnp/notifier"
 	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
 
 	capnp "capnproto.org/go/capnp/v3"
@@ -97,8 +97,8 @@ func (rn *RemoteNotifier) worker() {
 
 // -----------------------------------------------------------------------------
 
-// serialize converts Notification to NotifieMsg Cap'n Proto format.
-// It uses the locally replicated NotifieMsg schema.
+// serialize converts Notification to NotifierMsg Cap'n Proto format.
+// It uses the locally replicated NotifierMsg schema.
 func (rn *RemoteNotifier) serialize(n *models.NotifMessage) []byte {
 	// Create a new Cap'n Proto message
 	msg, seg, err := capnp.NewMessage(capnp.SingleSegment(nil))
@@ -108,7 +108,7 @@ func (rn *RemoteNotifier) serialize(n *models.NotifMessage) []byte {
 	}
 
 	// Create Root Struct
-	notifMsg, err := notifie_schema.NewRootNotifieMsg(seg)
+	notifMsg, err := notifier_schema.NewRootNotifierMsg(seg)
 	if err != nil {
 		return nil
 	}

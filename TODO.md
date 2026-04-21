@@ -2,3 +2,4 @@
   - *Note*: `conn_manager` (via `microservice-toolbox`) now natively handles indefinite network retries with multiplicative backoff. The missing logic is strictly for launching the process itself on a local machine.
 - [ ] Consider adding a unified program launcher that checks service location (via `ip_resolver`) and potentially communicates through `tele-remote`.
  and restart with a function parameter to choose how the reconneciton should behave (e.g. restart the process, try to reconnect, etc.)
+ - [ ] Need to remove the microservice-toolbox import, to prevent problems, anyway it should be not used here

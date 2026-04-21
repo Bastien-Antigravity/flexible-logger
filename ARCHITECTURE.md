@@ -84,21 +84,21 @@ The central entry point. It handles:
 
 ### 2. Sinks (`src/sink`)
 Sinks form a pipeline to handle log data.
-*   **`WriterSink`**: Wraps an `io.Writer`. Serializes the entry (e.g., to Cap'n Proto or JSON) and writes bytes.
+*   **`WriterSink`**: Wraps an `io.Writer`. Serializes the entry (e.g., to Cap'n Proto via `src/schemas/capnp/logger`) and writes bytes.
 *   **`AsyncSink`**: Decouples the application from IO. Uses a buffered channel. If the buffer is full, it drops logs to prevent blocking.
 *   **`MultiSink`**: Fan-out pattern. Sends one log entry to multiple destinations (e.g., File + Network).
 *   **Memory Management**: Sinks accept ownership of a `LogEntry` and are responsible for calling `Release()` to return it to the pool.
 
-### 3. Network Manager (`src/network_manager`)
-Handles robust network communication.
-*   **`NetworkManager`**: Factory for creating connections.
-*   **`ManagedConnection`**: A wrapper around the raw socket. It intercepts `Write()` calls; if the underlying connection is broken, it automatically attempts to reconnect (blocking or async depending on config) and retries the write.
-*   **`EstablishConnection`**: Centralized logic for IP/Port resolution and socket creation.
+### 3. Connection Management (Outsourced)
+Since the consolidation of ecosystem-wide networking, the logger no longer maintains a local `src/network_manager`.
+*   **Centralized Core**: It now uses the `conn_manager.NetworkManager` from the `microservice-toolbox`.
+*   **ManagedConnection**: Handles the `Write()` interception, automatic reconnection with multiplicative backoff, and jittered retries.
+*   **Resolution**: Uses the toolbox's logic for IP/gRPC/Port resolution.
 
 ### 4. Notifiers (`src/notifier`)
 A separate subsystem for high-priority alerts (Warnings/Errors).
 *   **Independent Channel**: Does not block the main log stream.
-*   **`RemoteNotifier`**: Uses a dedicated lightweight protocol (`tcp-hello` profile) to send alerts to a monitoring server. Uses `ManagedConnection` for auto-reconnection.
+*   **`RemoteNotifier`**: Uses a dedicated lightweight protocol (`tcp-hello` profile) to send alerts to a monitoring server. Serializes messages using `src/schemas/capnp/notifier`. Uses `ManagedConnection` for auto-reconnection.
 *   **`LocalNotifier`**: Allows the application to subscribe to alerts via a local Go channel. This is used by the `NotifLogger` profile to enable programmatic reactions to errors.
 
 ## Reliability & Testability

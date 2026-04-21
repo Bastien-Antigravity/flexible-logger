@@ -8,15 +8,21 @@ The test suite is designed to ensure the reliability, performance, and thread-sa
 
 ## Test Categories
 
+1.  **Engine Logic**: Validates log level filtering, metadata enrichment, and polling mechanisms.
+2.  **Sinks & Notifiers**: Tests for correct data routing to console, file, and remote network endpoints.
+3.  **Serialization**: Ensures high-fidelity conversion of log entries to Cap'n Proto and JSON formats.
+4.  **Network Resilience**: Verifies auto-reconnection and backoff strategies when the `log-server` is unavailable.
+5.  **Concurrency & Race Conditions**: Stress tests for non-blocking asynchronous paths.
+
 ## Testing Strategy
 
 The `flexible-logger` uses a three-tier testing strategy to ensure high performance and reliability:
 
 ### 1. Unit Testing (Isolated)
 We use the **Table-Driven Test** pattern to verify logical components in isolation without needing real IO.
-*   **Profiles**: [profiles_test.go](file:///Users/imac/Desktop/Bastien-Antigravity/flexible-logger/src/profiles/profiles_test.go) automatically verifies that standalone profiles boot and log correctly in one loop.
-*   **Engine**: [log_engine_test.go](file:///Users/imac/Desktop/Bastien-Antigravity/flexible-logger/src/engine/log_engine_test.go) uses **Mocks** to verify filtering, metadata, and notification triggers.
-*   **Local Reaction**: [profiles_test.go](file:///Users/imac/Desktop/Bastien-Antigravity/flexible-logger/src/profiles/profiles_test.go) includes `TestNotifLogger_LocalQueue`, which verifies that the `NotifLogger` correctly pipes alerts (Warnings/Errors) into a Go channel for in-process handling.
+*   **Profiles**: [profiles_test.go](src/profiles/profiles_test.go) automatically verifies that standalone profiles boot and log correctly in one loop.
+*   **Engine**: [log_engine_test.go](src/engine/log_engine_test.go) uses **Mocks** to verify filtering, metadata, and notification triggers.
+*   **Local Reaction**: [profiles_test.go](src/profiles/profiles_test.go) includes `TestNotifLogger_LocalQueue`, which verifies that the `NotifLogger` correctly pipes alerts (Warnings/Errors) into a Go channel for in-process handling.
 
 ### 2. Integration Testing (Cooperative)
 These tests verify that the logger correctly interacts with the wider ecosystem.
@@ -25,7 +31,7 @@ These tests verify that the logger correctly interacts with the wider ecosystem.
 
 ### 3. Verification & Benchmarking
 *   **Performance**: Run `go test -v -bench=. ./...` to verify zero-allocation goals.
-*   **Sanity Checks**: Use [verify_premium_features.go](file:///Users/imac/Desktop/Bastien-Antigravity/flexible-logger/scratch/verify_premium_features.go) for human-readable verification of JSON, Audit, and Sampling.
+*   **Sanity Checks**: Use [verify_premium_features.go](scratch/verify_premium_features.go) for human-readable verification of JSON, Audit, and Sampling.
 
 ### 6. Log Server Connectivity Tool
 - **File**: `cmd/test-log-server/main.go`
