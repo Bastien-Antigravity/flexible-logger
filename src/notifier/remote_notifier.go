@@ -31,7 +31,9 @@ func NewRemoteNotifier(ip, port, publicIP *string, appName string) *RemoteNotifi
 	// We use nil for logger here as this is the foundational logger itself, 
 	// but we move to the modernized WithLogger constructor for consistency.
 	nm := conn_manager.NewNetworkManagerWithLogger(-1, 200, 5000, 2000, 2.0, 0.1, nil)
-	nm.OnError = error_handler.ReportInternalError
+	nm.OnError = func(attempt int, err error, source string, msg string) {
+		error_handler.ReportInternalError("RemoteNotifier", source, err, msg)
+	}
 
 	rn := &RemoteNotifier{
 		ip:         ip,

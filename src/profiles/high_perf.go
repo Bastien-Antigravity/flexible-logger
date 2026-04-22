@@ -24,7 +24,9 @@ import (
 func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalNotif bool) interfaces.Logger {
 	// 1. Network (Async)
 	nm := conn_manager.NewNetworkManager(-1, 200, 5000, 2000, 2.0, 0.1)
-	nm.OnError = error_handler.ReportInternalError
+	nm.OnError = func(attempt int, err error, source string, msg string) {
+		error_handler.ReportInternalError(name, source, err, msg)
+	}
 
 	type ServerCap struct {
 		IP   string `json:"ip"`
