@@ -5,7 +5,7 @@ go 1.25.4
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.2
 	github.com/Bastien-Antigravity/distributed-config v1.8.0
-	github.com/Bastien-Antigravity/microservice-toolbox/go v1.1.5
+	github.com/Bastien-Antigravity/microservice-toolbox/go v1.1.6
 )
 
 require (
