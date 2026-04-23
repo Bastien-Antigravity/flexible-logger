@@ -37,7 +37,7 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 	}
 
 	// 3. Network (Sync / Blocking)
-	nm := conn_manager.NewNetworkManager(-1, 200, 5000, 2000, 2.0, 0.1)
+	nm := conn_manager.NewCriticalStrategy(nil)
 	nm.OnError = func(attempt int, err error, source string, msg string) {
 		error_handler.ReportInternalError(name, source, err, msg)
 	}
@@ -50,8 +50,8 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 	if err := config.GetCapability("log-server", &lsCap); err == nil && lsCap.IP != "" {
 		publicIP := "127.0.0.1"
 
-		// Use ConnectBlocking for Audit trail
-		conn := nm.ConnectBlocking(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name)
+		// Use Connect with ModeIndefinite for Audit trail
+		conn := nm.Connect(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name, conn_manager.ModeIndefinite)
 
 		// IMPORTANT: Wrap directly in WriterSink WITHOUT an AsyncSink wrapper.
 		// This makes the log.Info() call WAIT for the socket write to complete.

@@ -25,7 +25,6 @@ func main() {
 	defer stopNotif()
 
 	// Override Config with Mock Addresses
-	// Override Config with Mock Addresses
 	if distConf.Capabilities == nil {
 		distConf.Capabilities = make(map[string]interface{})
 	}

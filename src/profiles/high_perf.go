@@ -23,7 +23,7 @@ import (
 // - Notif (Async)
 func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalNotif bool) interfaces.Logger {
 	// 1. Network (Async)
-	nm := conn_manager.NewNetworkManager(-1, 200, 5000, 2000, 2.0, 0.1)
+	nm := conn_manager.NewPerformanceStrategy(nil)
 	nm.OnError = func(attempt int, err error, source string, msg string) {
 		error_handler.ReportInternalError(name, source, err, msg)
 	}
@@ -43,13 +43,14 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 	// Default public IP (as pointer to handle dynamic update requirement, though static here for now)
 	publicIP := "127.0.0.1"
 
-	conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp-hello:"+name)
+	// Use Connect with ModeNonBlocking
+	conn := nm.Connect(ipPtr, portPtr, &publicIP, "tcp-hello:"+name, conn_manager.ModeNonBlocking)
 	var networkSink interfaces.Sink
-	if err == nil {
+	if conn != nil {
 		ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
 		networkSink = sink.NewAsyncSink(ns, 16384) // Larger buffer
 	} else {
-		fmt.Fprintf(os.Stderr, "HighPerfLogger: Failed to connect to log server: %v\n", err)
+		fmt.Fprintf(os.Stderr, "HighPerfLogger: Failed to initialize connection manager for log server\n")
 		os.Exit(1)
 	}
 
