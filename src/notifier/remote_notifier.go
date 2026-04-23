@@ -28,9 +28,8 @@ type RemoteNotifier struct {
 // -----------------------------------------------------------------------------
 
 func NewRemoteNotifier(ip, port, publicIP *string, appName string) *RemoteNotifier {
-	// We use nil for logger here as this is the foundational logger itself, 
-	// but we move to the modernized WithLogger constructor for consistency.
-	nm := conn_manager.NewNetworkManagerWithLogger(-1, 200, 5000, 2000, 2.0, 0.1, nil)
+	// We use the Performance Strategy for notifications as they should be non-blocking
+	nm := conn_manager.NewPerformanceStrategy(nil)
 	nm.OnError = func(attempt int, err error, source string, msg string) {
 		error_handler.ReportInternalError("RemoteNotifier", source, err, msg)
 	}
@@ -76,9 +75,9 @@ func (rn *RemoteNotifier) worker() {
 	// Pointers are already verified (by caller ideally, or nil check here if overly cautious)
 	// But let's assume valid pointers passed from profile which does the check.
 
-	conn, err := rn.netManager.ConnectWithRetry(rn.ip, rn.port, rn.publicIP, "tcp-hello:"+rn.appName)
-	if err != nil {
-		error_handler.ReportInternalError("RemoteNotifier", "worker.connect", err, "")
+	conn := rn.netManager.Connect(rn.ip, rn.port, rn.publicIP, "tcp-hello:"+rn.appName, conn_manager.ModeNonBlocking)
+	if conn == nil {
+		error_handler.ReportInternalError("RemoteNotifier", "worker.connect", fmt.Errorf("failed to initialize connection"), "")
 		return
 	}
 	defer conn.Close()
