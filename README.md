@@ -11,7 +11,7 @@ tags:
 
 A high-performance, zero-allocation, asynchronous logging library for Go, designed for distributed systems.
 
-## Features
+## Core Features
 
 *   **Zero Allocation**: Uses `sync.Pool` for log entries to minimize GC pressure.
 *   **Asynchronous IO**: Non-blocking logging using buffered channels (`AsyncSink`).
