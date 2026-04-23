@@ -11,7 +11,7 @@ The test suite is designed to ensure the reliability, performance, and thread-sa
 1.  **Engine Logic**: Validates log level filtering, metadata enrichment, and polling mechanisms.
 2.  **Sinks & Notifiers**: Tests for correct data routing to console, file, and remote network endpoints.
 3.  **Serialization**: Ensures high-fidelity conversion of log entries to Cap'n Proto and JSON formats.
-4.  **Network Resilience**: Verifies auto-reconnection and backoff strategies when the `log-server` is unavailable.
+4.  **Network Resilience**: Verifies auto-reconnection, backoff strategies, and specific **Connection Modes** (Blocking, Non-Blocking, Indefinite) tailored to each logger profile.
 5.  **Concurrency & Race Conditions**: Stress tests for non-blocking asynchronous paths.
 
 ## Testing Strategy
@@ -27,7 +27,7 @@ We use the **Table-Driven Test** pattern to verify logical components in isolati
 ### 2. Integration Testing (Cooperative)
 These tests verify that the logger correctly interacts with the wider ecosystem.
 *   **Config integration**: Ensuring that capabilities from `distributed-config` (like `log-server` IP/Port) are correctly mapped to sinks.
-*   **Network Manager**: Verifying TCP connection, retry logic, and blocking/non-blocking behavior.
+*   **Network Manager**: Verifying TCP connection, retry logic, and profile-specific **Strategy Presets** (Critical, Performance, Standard). Ensures that `Audit` logs correctly block until successful while `HighPerf` logs connect in the background.
 
 ### 3. Verification & Benchmarking
 *   **Performance**: Run `go test -v -bench=. ./...` to verify zero-allocation goals.
