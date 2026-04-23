@@ -22,6 +22,7 @@ A high-performance, zero-allocation, asynchronous logging library for Go, design
 *   **Smart Sampling**: Probabilistic log dropping for high-traffic (never drops Errors).
 *   **Audit Trail**: Zero-drop blocking mode for critical compliance logs.
 *   **Flexible Config**: Hot-swappable configurations via `distributed-config`.
+*   **State Verification**: `GetLevel()` accessor for real-time log level inspection and testing.
 
 ## Logger Profiles
 
@@ -37,6 +38,14 @@ The library provides several pre-configured profiles tailored for different envi
 | **No Lock** | **Yes** | Concurrency | Fully Async | Binary Capnp | **Enabled** (Async) | **Best Effort** (Drops All) |
 | **Minimal** | **No** | Simple CLIs | Async | *None* | Disabled | **Best Effort** (Drops Console) |
 | **Notif Logger** | **Yes** | Real-time Apps | Fully Async | Capnp / Human | **Enabled** (Async) | **Local Reaction Queue** |
+
+### 🛡️ Connection Resilience Strategies
+
+Flexible-logger now utilizes standardized connection strategies from the `microservice-toolbox` to ensure stability:
+
+-   **Critical Strategy**: Used by the **Audit** profile. Implements an **Indefinite Retry** mode with exponential backoff and jitter. It will never give up on a connection, ensuring compliance trails are maintained.
+-   **Standard Strategy**: Used by most profiles. Implements a robust retry logic with a maximum backoff cap (2.0s), balancing reliability with system responsiveness.
+-   **Performance Strategy**: Used by **High Perf**. Optimized for low-latency dispatching with aggressive timeout policies.
 
 ### Profile Details
 

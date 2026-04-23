@@ -39,6 +39,11 @@ func (l *LogEngine) SetLevel(level models.Level) {
 	l.Level = level
 }
 
+// GetLevel returns the current log level.
+func (l *LogEngine) GetLevel() models.Level {
+	return l.Level
+}
+
 // -----------------------------------------------------------------------------
 // SetCallerSkip sets the number of stack frames to skip.
 func (l *LogEngine) SetCallerSkip(skip int) {

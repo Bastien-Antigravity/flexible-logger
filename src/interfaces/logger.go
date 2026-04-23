@@ -61,6 +61,9 @@ type Logger interface {
 	// SetLevel sets the current log level.
 	SetLevel(level models.Level)
 
+	// GetLevel returns the current log level.
+	GetLevel() models.Level
+
 	// -------------------------------------------------------------------------
 	// SetCallerSkip sets the number of stack frames to skip when detecting source info.
 	SetCallerSkip(skip int)
