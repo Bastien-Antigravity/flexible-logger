@@ -41,7 +41,7 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 
 	// 3. Network (Async)
 	// We block now until connection is established, per requirements.
-	nm := conn_manager.NewCriticalStrategy(nil)
+	nm := conn_manager.NewStandardStrategy(nil)
 	nm.OnError = func(attempt int, err error, source string, msg string) {
 		error_handler.ReportInternalError(name, source, err, msg)
 	}
