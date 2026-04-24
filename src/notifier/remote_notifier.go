@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
@@ -23,6 +24,8 @@ type RemoteNotifier struct {
 	notifChan  chan *models.NotifMessage
 	wg         sync.WaitGroup
 	netManager *conn_manager.NetworkManager
+	conn       io.WriteCloser // stored reference for clean shutdown
+	connReady  chan struct{}   // signals that conn has been initialized
 }
 
 // -----------------------------------------------------------------------------
@@ -41,6 +44,7 @@ func NewRemoteNotifier(ip, port, publicIP *string, appName string) *RemoteNotifi
 		appName:    appName,
 		notifChan:  make(chan *models.NotifMessage, 1000),
 		netManager: nm,
+		connReady:  make(chan struct{}),
 	}
 	rn.wg.Add(1)
 	go rn.worker()
@@ -62,6 +66,12 @@ func (rn *RemoteNotifier) Notify(n *models.NotifMessage) error {
 
 func (rn *RemoteNotifier) Close() error {
 	close(rn.notifChan)
+	// Wait for the connection to be initialized, then close it to break
+	// any ongoing reconnection loop in ManagedConnection.reconnect().
+	<-rn.connReady
+	if rn.conn != nil {
+		rn.conn.Close()
+	}
 	rn.wg.Wait()
 	return nil
 }
@@ -71,11 +81,13 @@ func (rn *RemoteNotifier) Close() error {
 func (rn *RemoteNotifier) worker() {
 	defer rn.wg.Done()
 
-	// Initial Connection
-	// Pointers are already verified (by caller ideally, or nil check here if overly cautious)
-	// But let's assume valid pointers passed from profile which does the check.
-
 	conn := rn.netManager.Connect(rn.ip, rn.port, rn.publicIP, "tcp-hello:"+rn.appName, conn_manager.ModeNonBlocking)
+
+	// Store reference and signal readiness for Close() to use.
+	// This must happen even if conn is nil, to prevent Close() from blocking on <-connReady.
+	rn.conn = conn
+	close(rn.connReady)
+
 	if conn == nil {
 		error_handler.ReportInternalError("RemoteNotifier", "worker.connect", fmt.Errorf("failed to initialize connection"), "")
 		return
