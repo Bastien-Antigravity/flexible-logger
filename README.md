@@ -76,16 +76,16 @@ All log methods use **Printf-style** format strings (`format string, args ...any
 package main
 
 import (
-    "github.com/Bastien-Antigravity/flexible-logger/src/profiles"
-    distributed_config "github.com/Bastien-Antigravity/distributed-config"
+	distributed_config "github.com/Bastien-Antigravity/distributed-config"
+	flexible_logger_profiles "github.com/Bastien-Antigravity/flexible-logger/src/profiles"
 )
 
 func main() {
-    // 1. Load Config
-    config := distributed_config.New("standalone")
+	// 1. Load Config
+	config := distributed_config.New("standalone")
 
-    // 2. Initialize Logger (False: Suppression of remote NOTIF connects)
-    logger := profiles.NewHighPerfLogger("MyApp", config, false)
+	// 2. Initialize Logger (False: Suppression of remote NOTIF connects)
+	logger := flexible_logger_profiles.NewHighPerfLogger("MyApp", config, false)
     defer logger.Close()
 
     // 3. Log with format strings
