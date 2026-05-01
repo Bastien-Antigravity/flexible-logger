@@ -1,11 +1,11 @@
 capnproto.org/go/capnp/v3 v3.1.0-alpha.2 h1:93ISpqHf2/3WQlfrBP0tT8Dg/RQc3uq6DV36vN0ePWk=
 capnproto.org/go/capnp/v3 v3.1.0-alpha.2/go.mod h1:2vT5D2dtG8sJGEoEKU17e+j7shdaYp1Myl8X03B3hmc=
-github.com/Bastien-Antigravity/distributed-config v1.9.0 h1:NNgUAfSpBc/aPD/CprUXIERnA+YTDe7TWD9ZqJkPOoM=
-github.com/Bastien-Antigravity/distributed-config v1.9.0/go.mod h1:bwq1sWgMANmVPmwugVM17Qui1SDXAUIoeEBBNSOZ7qM=
-github.com/Bastien-Antigravity/microservice-toolbox/go v1.1.7 h1:+UZYN4jifCyyJpNqhQ+HdAuIcc9ojOYKWype4qVsNFg=
-github.com/Bastien-Antigravity/microservice-toolbox/go v1.1.7/go.mod h1:MPcjeXmapPGNcjje6+rYap/n4frcNCcjFzBW9CjBrrs=
-github.com/Bastien-Antigravity/safe-socket v1.8.0 h1:uyaCEmPnQ5z6nWKAW128RVIgWJqqTeWQo1NS1Af845w=
-github.com/Bastien-Antigravity/safe-socket v1.8.0/go.mod h1:ngCgFarvn3V+o248h48A5u+7Z4OSu2TgEMrWu3YQXe0=
+github.com/Bastien-Antigravity/distributed-config v1.9.9 h1:z9e98Lal3WIgR4UmGteqLzBTazSt+xU8e6oN02K85ck=
+github.com/Bastien-Antigravity/distributed-config v1.9.9/go.mod h1:bMZEvfAUTmidVW1oa0iFrOXfP61wgG+Q6dUswhvGYPI=
+github.com/Bastien-Antigravity/microservice-toolbox/go v1.2.0 h1:rkcXkx7djUGJObmJcb87QynMOQzqfJ6Rmb0jzkLZWyg=
+github.com/Bastien-Antigravity/microservice-toolbox/go v1.2.0/go.mod h1:h2chdoQF9pgE4Z8xYMQizNFNulZ7d8sJ64UwSMt9f6Y=
+github.com/Bastien-Antigravity/safe-socket v1.8.2 h1:qQQuNdEfA2j7qNcDIuaC8GQFAynTZbD6H5/lbMr6l7Q=
+github.com/Bastien-Antigravity/safe-socket v1.8.2/go.mod h1:ngCgFarvn3V+o248h48A5u+7Z4OSu2TgEMrWu3YQXe0=
 github.com/colega/zeropool v0.0.0-20230505084239-6fb4a4f75381 h1:d5EKgQfRQvO97jnISfR89AiCCCJMwMFoSxUiU0OGCRU=
 github.com/colega/zeropool v0.0.0-20230505084239-6fb4a4f75381/go.mod h1:OU76gHeRo8xrzGJU3F3I1CqX1ekM8dfJw0+wPeMwnp0=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
