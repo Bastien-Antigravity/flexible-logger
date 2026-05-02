@@ -2,8 +2,8 @@ capnproto.org/go/capnp/v3 v3.1.0-alpha.2 h1:93ISpqHf2/3WQlfrBP0tT8Dg/RQc3uq6DV36
 capnproto.org/go/capnp/v3 v3.1.0-alpha.2/go.mod h1:2vT5D2dtG8sJGEoEKU17e+j7shdaYp1Myl8X03B3hmc=
 github.com/Bastien-Antigravity/distributed-config v1.9.922 h1:oOQPQ1o/a/WHqzl/4t+W9mBE8VyovAX0GjVu1qdtgsg=
 github.com/Bastien-Antigravity/distributed-config v1.9.922/go.mod h1:bMZEvfAUTmidVW1oa0iFrOXfP61wgG+Q6dUswhvGYPI=
-github.com/Bastien-Antigravity/microservice-toolbox/go v1.2.2 h1:LdLDmKXfDS9NhcsMMMvS2fFnpn05cxEKuBPfEYVduN4=
-github.com/Bastien-Antigravity/microservice-toolbox/go v1.2.2/go.mod h1:caH49TE7cjrysFuFYvku4YQwMzs07VdOkLYSZG5XAGw=
+github.com/Bastien-Antigravity/microservice-toolbox/go v1.2.2 h1:ueTdKJ/GJT//IrN/TDh4tkJpixhM509eHcI3JKxSRx8=
+github.com/Bastien-Antigravity/microservice-toolbox/go v1.2.2/go.mod h1:YvvqdLBCw72rKofboRpH3eUN+CGcnz8q4Epdsr3ksPU=
 github.com/Bastien-Antigravity/safe-socket v1.8.2 h1:qQQuNdEfA2j7qNcDIuaC8GQFAynTZbD6H5/lbMr6l7Q=
 github.com/Bastien-Antigravity/safe-socket v1.8.2/go.mod h1:ngCgFarvn3V+o248h48A5u+7Z4OSu2TgEMrWu3YQXe0=
 github.com/colega/zeropool v0.0.0-20230505084239-6fb4a4f75381 h1:d5EKgQfRQvO97jnISfR89AiCCCJMwMFoSxUiU0OGCRU=
