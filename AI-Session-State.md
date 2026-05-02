@@ -2,6 +2,14 @@
 microservice: flexible-logger
 type: session-state
 status: active
+lifecycle:
+  active_branch: develop
+  protected_branches: [main, master]
+  current_version: 1.3.3
+  version_source: VERSION.txt
+done_when:
+  - tests_passed: false
+  - decision_log_updated: false
 directives:
   - autonomous-doc-sync: mandatory
   - obsidian-brain-sync: mandatory

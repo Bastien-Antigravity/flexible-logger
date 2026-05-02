@@ -1,9 +1,15 @@
-- [ ] Implement auto-start logic for `log-server` and `notif-server` if the connection fails or needs a restart.
-  - *Note*: `conn_manager` (via `microservice-toolbox`) now natively handles indefinite network retries with multiplicative backoff. The missing logic is strictly for launching the process itself on a local machine.
-- [ ] Consider adding a unified program launcher that checks service location (via `ip_resolver`) and potentially communicates through `tele-remote`.
- and restart with a function parameter to choose how the reconneciton should behave (e.g. restart the process, try to reconnect, etc.)
-- [ ] Refine `OnError` callback behavior for each logger profile:
-  - Determine if we should trigger a full configuration refresh (`distributed-config`) on repeated connection failures.
-  - Implement logic to potentially restart the destination server (`log-server`/`notif-server`) via `tele-remote` if reconnections keep failing.
-  - Evaluate if certain profiles (e.g., `Audit`) should halt the application entirely if the error handler cannot recover the link after a specific threshold.
-- [ ] Need to remove the microservice-toolbox import, to prevent problems, anyway it should be not used here
+# TODO: flexible-logger
+
+## 🚨 High Priority (Governance Gaps)
+- [ ] **Level Purge (Purger Rule)**: Reduce the 12 log levels to 5 core levels (Debug, Info, Warn, Error, Critical). Use Tags for special categories (FEAT-001). (Approval Required)
+- [ ] **Pool Safety**: Ensure `LogEntry.Release()` is called even if `Sink.Write` returns an error to prevent memory leaks under failure conditions (FEAT-004). (Approval Required)
+
+## 🏗️ Architecture & Refactoring
+- [ ] Implement `MultiSink` support for the Audit profile.
+- [ ] Standardize the Cap'n Proto schema for cross-service logging.
+
+## 🧪 Testing & CI/CD
+- [ ] Add benchmarks for `sync.Pool` performance under high load.
+
+## ✅ Completed
+- [x] Initial BDD Spec migration.
