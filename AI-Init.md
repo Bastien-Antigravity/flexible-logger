@@ -1,3 +1,9 @@
+---
+microservice: flexible-logger
+type: governance
+status: active
+---
+
 # ⚡ AI Initialization: flexible-logger
 
 > [!IMPORTANT] MANDATORY INITIALIZATION
