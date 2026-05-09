@@ -11,7 +11,7 @@ import (
 func main() {
 	serializer := serializers.NewTextSerializer()
 	entry := &models.LogEntry{
-		Timestamp:    time.Now(),
+		Timestamp:    time.Now().UTC(),
 		Level:        models.LevelInfo,
 		ProcessID:    "12345",
 		Filename:     "main.go",
