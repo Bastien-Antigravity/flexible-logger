@@ -3,24 +3,30 @@ microservice: flexible-logger
 type: repository
 status: active
 language: go
+version: 1.3.4
 tags:
   - domain/observability
 ---
 
 # Flexible Logger
 
-A high-performance, zero-allocation, asynchronous logging library for Go, designed for distributed systems.
+![Version](https://img.shields.io/badge/version-1.3.4-blue)
+![Stability](https://img.shields.io/badge/stability-production--ready-green)
+
+A high-performance, zero-allocation, asynchronous logging library for Go, designed for distributed systems. 
+
+**v1.3.4 (Reliability Release)**: Features hardened memory management, full Cap'n Proto level parity, and verified concurrency safety.
 
 ## Core Features
 
 *   **Zero Allocation**: Uses `sync.Pool` for log entries to minimize GC pressure.
 *   **Asynchronous IO**: Non-blocking logging using buffered channels (`AsyncSink`).
-*   **Structured & Binary**: Native support for **Cap'n Proto** serialization.
+*   **Structured & Binary**: Native support for **Cap'n Proto** serialization (Full 12-level ecosystem parity).
 *   **Network Logging**: Reliable TCP logging with auto-reconnection using standardized `conn_manager` strategies (**Critical**, **Standard**, **Performance**) to match profile reliability.
 *   **Notifications**: Asynchronous alert system (`RemoteNotifier`) for warnings and errors.
 *   **Automatic Metadata**: Captures `ProcessID`, `Hostname`, `Filename`, and `LineNumber`.
 *   **Smart Sampling**: Probabilistic log dropping for high-traffic (never drops Errors).
-*   **Audit Trail**: Zero-drop blocking mode for critical compliance logs.
+*   **Audit Trail**: Zero-drop blocking mode for critical compliance logs (MultiSink Console + File + Network).
 *   **Flexible Config**: Hot-swappable configurations via `distributed-config`.
 *   **State Verification**: `GetLevel()` accessor for real-time log level inspection and testing.
 

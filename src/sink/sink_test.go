@@ -33,7 +33,12 @@ func (m *MockSink) Write(entry *models.LogEntry) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.WriteCount++
-	m.LastEntry = entry
+	// Note: We copy the message because the entry might be reused after Release
+	if entry != nil {
+		e := *entry
+		m.LastEntry = &e
+		entry.Release()
+	}
 	return nil
 }
 
@@ -126,5 +131,56 @@ func TestMultiSink_Write(t *testing.T) {
 
 	if sink1.GetWriteCount() != 1 || sink2.GetWriteCount() != 1 {
 		t.Errorf("Expected 1 write in both sinks, got sink1=%d, sink2=%d", sink1.GetWriteCount(), sink2.GetWriteCount())
+	}
+}
+
+func TestAsyncSink_BufferFull_DropsLog(t *testing.T) {
+	mockSink := &MockSink{}
+	// Small buffer
+	asyncSink := NewAsyncSink(mockSink, 1)
+	
+	// Fill buffer and worker's current processing
+	e1 := models.EntryPool.Get().(*models.LogEntry)
+	e1.Reset()
+	e1.Message = "Msg 1"
+	_ = asyncSink.Write(e1)
+	
+	e2 := models.EntryPool.Get().(*models.LogEntry)
+	e2.Reset()
+	e2.Message = "Msg 2"
+	_ = asyncSink.Write(e2)
+	
+	// Third one should be dropped
+	e3 := models.EntryPool.Get().(*models.LogEntry)
+	e3.Reset()
+	e3.Message = "Msg 3"
+	err := asyncSink.Write(e3)
+	
+	if err == nil {
+		t.Error("Expected error when buffer is full, got nil")
+	}
+}
+
+func TestMultiSink_ZeroSinks(t *testing.T) {
+	multi := NewMultiSink()
+	
+	entry := models.EntryPool.Get().(*models.LogEntry)
+	entry.Reset()
+	
+	err := multi.Write(entry)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
+func TestMultiSink_Close_AllSinksClosed(t *testing.T) {
+	sink1 := &MockSink{}
+	sink2 := &MockSink{}
+	multi := NewMultiSink(sink1, sink2)
+	
+	_ = multi.Close()
+	
+	if !sink1.IsClosed() || !sink2.IsClosed() {
+		t.Error("Expected all underlying sinks to be closed")
 	}
 }

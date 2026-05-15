@@ -40,15 +40,12 @@ func TestRemoteNotifier_Notify(t *testing.T) {
 	publicIP := "127.0.0.1"
 	
 	rn := NewRemoteNotifier(&ip, &port, &publicIP, "test-app")
-	// We don't wait for connection here as it happens in a goroutine.
+	// Ensure we close to avoid goroutine leak
+	defer rn.Close()
 	
 	msg := &models.NotifMessage{Message: "Remote Test"}
 	err := rn.Notify(msg)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	
-	// Close will wait for worker (which might be stuck on connection, but for this test it's fine if it just queues)
-	// Actually, rn.Close() calls wg.Wait(), so if worker is stuck on ConnectWithRetry, it might hang.
-	// But ConnectWithRetry usually has a timeout or fails after some retries.
 }

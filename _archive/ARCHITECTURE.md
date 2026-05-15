@@ -104,11 +104,9 @@ A separate subsystem for high-priority alerts (Warnings/Errors).
 ## Reliability & Testability
 
 ### 1. Best-Effort vs. Audit-Secure
-The architecture is designed to handle the fundamental trade-off between application performance and log delivery reliability:
-*   **Best-Effort (Default)**: Uses `AsyncSink` with buffered channels. If the buffer is full, logs are discarded to ensure the application never blocks. This is used by `HighPerf` and `Standard` (for network).
-*   **Audit-Secure**: Bypasses the `AsyncSink` to use direct, blocking writes to the `ManagedConnection`. This guarantees that the application waits until the remote server receives the data. Used by the `Audit` profile.
+...
 
-### 2. Deterministic Testing
-The system is designed for 100% testability through:
-*   **Pluggable Interfaces**: Every component (Sink, Notifier, Serializer) is defined by an interface, allowing us to swap real IO with high-speed **Mocks** in unit tests.
-*   **Table-Driven Testing**: Our profile verification uses Go's table-driven pattern to ensure that all configurations (from Minimal to Audit) behave correctly under a unified testing logic.
+### 3. v1.3.4 Reliability Patch
+*   **Pool Safety**: Explicitly verified that `LogEntry.Release()` is called across all sink types, including the `MultiSink` fan-out and `AsyncSink` drop paths.
+*   **Cap'n Proto Integrity**: Verified full round-trip serialization for all 12 log levels, ensuring no data loss during network transport.
+*   **Concurrency Hardening**: Validated the `LogEntry` ref-counting mechanism under high-contention scenarios (100+ concurrent goroutines).
