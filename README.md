@@ -5,7 +5,8 @@ status: active
 language: go
 version: 1.3.4
 tags:
-  - domain/observability
+- \'#service/flexible-logger\'
+  - '#domain/observability'
 ---
 
 # Flexible Logger

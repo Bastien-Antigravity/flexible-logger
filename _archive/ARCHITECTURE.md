@@ -3,7 +3,8 @@ microservice: flexible-logger
 type: architecture
 status: active
 tags:
-  - domain/observability
+- \'#service/flexible-logger\'
+  - '#domain/observability'
 ---
 
 # Architecture
