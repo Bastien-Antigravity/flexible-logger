@@ -4,16 +4,21 @@ type: session-state
 status: active
 lifecycle:
   active_branch: develop
-  protected_branches: [main, master]
+  protected_branches:
+  - main
+  - master
   current_version: 1.3.4
   version_source: VERSION.txt
 done_when:
-  - tests_passed: true
-  - decision_log_updated: true
+- 'tests_passed: true'
+- 'decision_log_updated: true'
 directives:
-  - autonomous-doc-sync: mandatory
-  - obsidian-brain-sync: mandatory
-  - conventional-commits: mandatory
+- 'autonomous-doc-sync: mandatory'
+- 'obsidian-brain-sync: mandatory'
+- 'conventional-commits: mandatory'
+tags:
+- '#service/flexible-logger'
+- '#zone/3-fleet'
 ---
 
 # 🧠 AI Session State: flexible-logger
