@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 )
 
 // -----------------------------------------------------------------------------

@@ -15,13 +15,13 @@ import (
 func TestJSONSerializer(t *testing.T) {
 	s := NewJSONSerializer()
 	entry := &models.LogEntry{
-		Timestamp:    time.Now().UTC(),
-		Level:        models.LevelInfo,
-		Message:      "test message",
-		LoggerName:   "test-logger",
-		Filename:     "test.go",
-		LineNumber:   "42",
-		ProcessID:    "123",
+		Timestamp:  time.Now().UTC(),
+		Level:      models.LevelInfo,
+		Message:    "test message",
+		LoggerName: "test-logger",
+		Filename:   "test.go",
+		LineNumber: "42",
+		ProcessID:  "123",
 	}
 
 	data, err := s.Serialize(entry)
@@ -47,13 +47,13 @@ func TestJSONSerializer(t *testing.T) {
 func TestTextSerializer(t *testing.T) {
 	s := NewTextSerializer()
 	entry := &models.LogEntry{
-		Timestamp:    time.Now().UTC(),
-		Level:        models.LevelInfo,
-		Message:      "test message",
-		LoggerName:   "test-logger",
-		Filename:     "test.go",
-		LineNumber:   "42",
-		ProcessID:    "123",
+		Timestamp:  time.Now().UTC(),
+		Level:      models.LevelInfo,
+		Message:    "test message",
+		LoggerName: "test-logger",
+		Filename:   "test.go",
+		LineNumber: "42",
+		ProcessID:  "123",
 	}
 
 	data, err := s.Serialize(entry)
@@ -79,7 +79,7 @@ func TestTextSerializer(t *testing.T) {
 
 func TestCapnpSerializer(t *testing.T) {
 	s := NewCapnpSerializer()
-	
+
 	levels := []models.Level{
 		models.LevelDebug,
 		models.LevelStream,
@@ -134,7 +134,7 @@ func TestCapnpSerializer(t *testing.T) {
 		if got := loggerMsg.Level(); uint16(got) != uint16(l) {
 			t.Errorf("Level %v: expected level enum %v, got %v", l, uint16(l), uint16(got))
 		}
-		
+
 		gotHost, err := loggerMsg.Hostname()
 		if err != nil {
 			t.Fatalf("Level %v: Failed to get hostname: %v", l, err)

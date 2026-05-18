@@ -38,11 +38,11 @@ func TestRemoteNotifier_Notify(t *testing.T) {
 	ip := "127.0.0.1"
 	port := "9999"
 	publicIP := "127.0.0.1"
-	
+
 	rn := NewRemoteNotifier(&ip, &port, &publicIP, "test-app")
 	// Ensure we close to avoid goroutine leak
 	defer rn.Close()
-	
+
 	msg := &models.NotifMessage{Message: "Remote Test"}
 	err := rn.Notify(msg)
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 
 // MockSink for testing
 type MockSink struct {
-	LastEntry *models.LogEntry
+	LastEntry  *models.LogEntry
 	WriteCount int
 	Closed     bool
 	mu         sync.Mutex
@@ -51,11 +51,11 @@ func (m *MockSink) IsClosed() bool {
 
 // MockNotifier for testing
 type MockNotifier struct {
-	LastMsg *models.NotifMessage
-	NotifyCount int
-	Closed      bool
+	LastMsg       *models.NotifMessage
+	NotifyCount   int
+	Closed        bool
 	ErrorToReturn error
-	mu          sync.Mutex
+	mu            sync.Mutex
 }
 
 func (m *MockNotifier) Notify(msg *models.NotifMessage) error {
@@ -216,9 +216,9 @@ func TestLogEngine_NotifierError_DoesNotBlockSink(t *testing.T) {
 		Level:        models.LevelInfo,
 		SamplingRate: 1.0,
 	}
-	
+
 	engine.Error("Test error")
-	
+
 	if mockSink.GetWriteCount() != 1 {
 		t.Errorf("Expected log to be written to sink even if notifier fails, got %d writes", mockSink.GetWriteCount())
 	}
@@ -232,10 +232,10 @@ func TestLogEngine_ErrorCollectsCallerEvenWhenDisabled(t *testing.T) {
 		CollectCallerInfo: false, // Disabled for general logs
 		SamplingRate:      1.0,
 	}
-	
+
 	engine.Error("Error level log")
 	entry := mockSink.GetLastEntry()
-	
+
 	if entry.Filename == "source-context" {
 		t.Error("Expected real filename for Error level even when CollectCallerInfo is false")
 	}
@@ -251,13 +251,13 @@ func TestLogEngine_ConcurrentStress(t *testing.T) {
 		Level:        models.LevelDebug,
 		SamplingRate: 1.0,
 	}
-	
+
 	numGoroutines := 100
 	numLogsPerGoroutine := 100
-	
+
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer wg.Done()
@@ -266,9 +266,9 @@ func TestLogEngine_ConcurrentStress(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	expected := numGoroutines * numLogsPerGoroutine
 	if mockSink.GetWriteCount() != expected {
 		t.Errorf("Expected %d logs, got %d", expected, mockSink.GetWriteCount())

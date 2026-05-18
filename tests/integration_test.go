@@ -59,11 +59,11 @@ func TestPremium_AuditBlocking(t *testing.T) {
 		Common: core.CommonConfig{Name: "AuditTest"},
 		Capabilities: map[string]interface{}{
 			"log_server": map[string]interface{}{
-				"ip": ip,
+				"ip":   ip,
 				"port": port,
 			},
 			"notif_server": map[string]interface{}{
-				"ip": ip,
+				"ip":   ip,
 				"port": port,
 			},
 		},
@@ -93,11 +93,11 @@ func TestPremium_SamplingIntegrity(t *testing.T) {
 		Common: core.CommonConfig{Name: "SamplingTest"},
 		Capabilities: map[string]interface{}{
 			"log_server": map[string]interface{}{
-				"ip": ip,
+				"ip":   ip,
 				"port": port,
 			},
 			"notif_server": map[string]interface{}{
-				"ip": ip,
+				"ip":   ip,
 				"port": port,
 			},
 		},
@@ -122,7 +122,7 @@ func TestPremium_SamplingIntegrity(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		logger.Info("Sampling check %d", i)
 	}
-	
+
 	for i := 0; i < 10; i++ {
 		logger.Error("Critical error %d", i)
 	}
@@ -137,11 +137,11 @@ func TestPremium_FleetHandshake(t *testing.T) {
 		Common: core.CommonConfig{Name: "FleetTest"},
 		Capabilities: map[string]interface{}{
 			"log_server": map[string]interface{}{
-				"ip": ip,
+				"ip":   ip,
 				"port": port,
 			},
 			"notif_server": map[string]interface{}{
-				"ip": ip,
+				"ip":   ip,
 				"port": port,
 			},
 		},
