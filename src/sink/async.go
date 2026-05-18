@@ -41,14 +41,22 @@ func (s *AsyncSink) SetOnError(onError func(error, *models.LogEntry)) {
 func (s *AsyncSink) worker() {
 	defer s.wg.Done()
 	for entry := range s.buffer {
-		if err := s.next.Write(entry); err != nil {
+		// Retain the entry so it is not recycled back into the pool
+		// by s.next.Write's deferred Release() while we are still processing it.
+		entry.Retain()
+
+		err := s.next.Write(entry)
+		if err != nil {
 			if s.OnError != nil {
 				s.OnError(err, entry)
 			} else {
-				// Use global reporter by default
+				// Safely report error since we still hold a reference
 				error_handler.ReportInternalError(entry.LoggerName, "AsyncSink.worker", err, entry.Message)
 			}
 		}
+
+		// Release our own reference to recycle the entry back to the pool
+		entry.Release()
 	}
 }
 
