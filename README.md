@@ -3,7 +3,7 @@ microservice: flexible-logger
 type: repository
 status: active
 language: go
-version: 1.3.4
+version: 0.0.1
 tags:
 - '#service/flexible-logger'
 - '#domain/observability'
@@ -12,12 +12,12 @@ tags:
 
 # Flexible Logger
 
-![Version](https://img.shields.io/badge/version-1.3.4-blue)
+![Version](https://img.shields.io/badge/version-0.0.1-blue)
 ![Stability](https://img.shields.io/badge/stability-production--ready-green)
 
 A high-performance, zero-allocation, asynchronous logging library for Go, designed for distributed systems. 
 
-**v1.3.4 (Reliability Release)**: Features hardened memory management, full Cap'n Proto level parity, and verified concurrency safety.
+**v0.0.1 (Initial Release)**: Features hardened memory management, full Cap'n Proto level parity, and verified concurrency safety.
 
 ## 📖 Documentation Directory Map
 

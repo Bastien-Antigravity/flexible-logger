@@ -7,7 +7,7 @@ lifecycle:
   protected_branches:
   - main
   - master
-  current_version: 1.3.4
+  current_version: 0.0.1
   version_source: VERSION.txt
 done_when:
 - 'tests_passed: true'
@@ -29,12 +29,12 @@ tags:
 ## 🚀 Progress Tracking
 - [x] Initialized session state tracking for this repository.
 - [x] Synchronized with the Global Obsidian Brain.
-- [x] **v1.3.3 Upgrade**: Synchronized with `distributed-config v0.0.1`, `microservice-toolbox v1.2.2`, and `safe-socket v0.0.1`.
-- [x] **v1.3.4 Reliability Patch**:
+- [x] **v0.0.1 Upgrade**: Synchronized with `distributed-config v0.0.1`, `microservice-toolbox v1.2.2`, and `safe-socket v0.0.1`.
+- [x] **v0.0.1 Reliability Patch**:
     - Fixed Cap'n Proto level mapping data loss.
     - Resolved `MultiSink` memory leak (FEAT-004).
     - Expanded test suite from 15 to 35+ tests (Pooling, Concurrency, Metadata).
-- [x] **v1.3.4 Onboarding Hardening**:
+- [x] **v0.0.1 Onboarding Hardening**:
     - Merged and structured archived architecture (`_archive/ARCHITECTURE.md`) and testing (`_archive/TESTING.md`) docs into target `quick-overview/` folder.
     - Populated high-density files: `Architecture-Overview.md`, `Features-Behavior.md`, `Testing-Playbook.md`, and `General-Misc.md`.
     - Leaned out the root `README.md` and established an interactive Documentation Directory Map.

@@ -10,7 +10,7 @@
 - [ ] Add benchmarks for `sync.Pool` performance under high load.
 
 ## ✅ Completed
-- [x] **v1.3.4 Reliability Patch**:
+- [x] **v0.0.1 Reliability Patch**:
     - Fixed `mapLevel` data loss in Cap'n Proto serializer (now supports all 12 levels).
     - Fixed memory leak in `MultiSink` with zero sinks (FEAT-004).
     - Fixed goroutine leak in `RemoteNotifier` tests.
