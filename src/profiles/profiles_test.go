@@ -78,12 +78,12 @@ func startTestServer(t *testing.T) (string, string, func()) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	addr := ln.Addr().String()
 	parts := strings.Split(addr, ":")
 	ip := parts[0]
 	port := parts[1]
-	
+
 	stopChan := make(chan struct{})
 	go func() {
 		for {
@@ -104,7 +104,7 @@ func startTestServer(t *testing.T) (string, string, func()) {
 			}(conn)
 		}
 	}()
-	
+
 	return ip, port, func() {
 		close(stopChan)
 		ln.Close()
@@ -120,7 +120,7 @@ func TestNotifLogger_LocalQueue(t *testing.T) {
 	configData := &core.Config{
 		Capabilities: map[string]interface{}{
 			"log_server": map[string]interface{}{
-				"ip": ip,
+				"ip":   ip,
 				"port": port,
 			},
 		},
@@ -162,7 +162,6 @@ func TestNotifLogger_LocalQueue(t *testing.T) {
 	}
 }
 
-
 func TestProfile_AppNamePropagation(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -189,17 +188,17 @@ func TestProfile_AppNamePropagation(t *testing.T) {
 		// Wait, NewHelloProtocol expects interfaces.TransportConnection.
 		// We'll use a simplified version of WaitInitiation's logic since we don't have the wrapper here yet.
 		// Or easier: we know it's a FramedTCP, so we can just skip the 4-byte header and read the Capnp msg.
-		
+
 		// Actually, let's just use the WaitInitiation from safe-socket if possible.
 		// But WaitInitiation needs a TransportConnection...
 		// Let's do it manually to keep the test simple and independent of facade wrappers.
-		
+
 		header := make([]byte, 4)
 		_, _ = conn.Read(header) // FramedTCP length
-		
+
 		payload := make([]byte, 1024)
 		n, _ := conn.Read(payload)
-		
+
 		// We'll just check if the string exists in the raw payload for simplicity in this unit test
 		// as decoding Capnp without the full schema access in the test might be verbose.
 		if strings.Contains(string(payload[:n]), expectedName) {
@@ -210,11 +209,11 @@ func TestProfile_AppNamePropagation(t *testing.T) {
 	configData := &core.Config{
 		Capabilities: map[string]interface{}{
 			"log_server": map[string]interface{}{
-				"ip": ip,
+				"ip":   ip,
 				"port": port,
 			},
 			"notif_server": map[string]interface{}{
-				"ip": ip,
+				"ip":   ip,
 				"port": port,
 			},
 		},

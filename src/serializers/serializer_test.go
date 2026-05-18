@@ -7,18 +7,21 @@ import (
 	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
+	logger_schema "github.com/Bastien-Antigravity/flexible-logger/src/schemas/capnp/logger"
+
+	capnp "capnproto.org/go/capnp/v3"
 )
 
 func TestJSONSerializer(t *testing.T) {
 	s := NewJSONSerializer()
 	entry := &models.LogEntry{
-		Timestamp:    time.Now().UTC(),
-		Level:        models.LevelInfo,
-		Message:      "test message",
-		LoggerName:   "test-logger",
-		Filename:     "test.go",
-		LineNumber:   "42",
-		ProcessID:    "123",
+		Timestamp:  time.Now().UTC(),
+		Level:      models.LevelInfo,
+		Message:    "test message",
+		LoggerName: "test-logger",
+		Filename:   "test.go",
+		LineNumber: "42",
+		ProcessID:  "123",
 	}
 
 	data, err := s.Serialize(entry)
@@ -44,13 +47,13 @@ func TestJSONSerializer(t *testing.T) {
 func TestTextSerializer(t *testing.T) {
 	s := NewTextSerializer()
 	entry := &models.LogEntry{
-		Timestamp:    time.Now().UTC(),
-		Level:        models.LevelInfo,
-		Message:      "test message",
-		LoggerName:   "test-logger",
-		Filename:     "test.go",
-		LineNumber:   "42",
-		ProcessID:    "123",
+		Timestamp:  time.Now().UTC(),
+		Level:      models.LevelInfo,
+		Message:    "test message",
+		LoggerName: "test-logger",
+		Filename:   "test.go",
+		LineNumber: "42",
+		ProcessID:  "123",
 	}
 
 	data, err := s.Serialize(entry)
@@ -76,21 +79,68 @@ func TestTextSerializer(t *testing.T) {
 
 func TestCapnpSerializer(t *testing.T) {
 	s := NewCapnpSerializer()
-	entry := &models.LogEntry{
-		Level:   models.LevelInfo,
-		Message: "test",
+
+	levels := []models.Level{
+		models.LevelDebug,
+		models.LevelStream,
+		models.LevelInfo,
+		models.LevelLogon,
+		models.LevelLogout,
+		models.LevelTrade,
+		models.LevelSchedule,
+		models.LevelReport,
+		models.LevelWarning,
+		models.LevelError,
+		models.LevelCritical,
 	}
 
-	data, err := s.Serialize(entry)
-	if err != nil {
-		t.Fatalf("Failed to serialize: %v", err)
-	}
+	for _, l := range levels {
+		entry := &models.LogEntry{
+			Timestamp:    time.Now().UTC(),
+			Level:        l,
+			Message:      "test message " + l.String(),
+			Hostname:     "host1",
+			LoggerName:   "logger1",
+			ProcessID:    "123",
+			Filename:     "file.go",
+			FunctionName: "main",
+			LineNumber:   "10",
+		}
 
-	if len(data) == 0 {
-		t.Error("Capnp output is empty")
-	}
-	// Basic check for Cap'n Proto framing (segment count least significant byte 0 for single segment)
-	if len(data) < 8 {
-		t.Error("Capnp output too short for header")
+		data, err := s.Serialize(entry)
+		if err != nil {
+			t.Fatalf("Level %v: Failed to serialize: %v", l, err)
+		}
+
+		// Deserialize and verify
+		msg, err := capnp.UnmarshalPacked(data)
+		if err != nil {
+			t.Fatalf("Level %v: Failed to unmarshal packed: %v", l, err)
+		}
+
+		loggerMsg, err := logger_schema.ReadRootLoggerMsg(msg)
+		if err != nil {
+			t.Fatalf("Level %v: Failed to read root LoggerMsg: %v", l, err)
+		}
+
+		gotMsg, err := loggerMsg.Message_()
+		if err != nil {
+			t.Fatalf("Level %v: Failed to get message: %v", l, err)
+		}
+		if gotMsg != entry.Message {
+			t.Errorf("Level %v: expected message '%s', got '%s'", l, entry.Message, gotMsg)
+		}
+
+		if got := loggerMsg.Level(); uint16(got) != uint16(l) {
+			t.Errorf("Level %v: expected level enum %v, got %v", l, uint16(l), uint16(got))
+		}
+
+		gotHost, err := loggerMsg.Hostname()
+		if err != nil {
+			t.Fatalf("Level %v: Failed to get hostname: %v", l, err)
+		}
+		if gotHost != entry.Hostname {
+			t.Errorf("Level %v: expected hostname '%s', got '%s'", l, entry.Hostname, gotHost)
+		}
 	}
 }

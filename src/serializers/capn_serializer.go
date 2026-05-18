@@ -88,8 +88,20 @@ func mapLevel(l models.Level) logger_schema.Level {
 	switch l {
 	case models.LevelDebug:
 		return logger_schema.Level_debug
+	case models.LevelStream:
+		return logger_schema.Level_stream
 	case models.LevelInfo:
 		return logger_schema.Level_info
+	case models.LevelLogon:
+		return logger_schema.Level_logon
+	case models.LevelLogout:
+		return logger_schema.Level_logout
+	case models.LevelTrade:
+		return logger_schema.Level_trade
+	case models.LevelSchedule:
+		return logger_schema.Level_schedule
+	case models.LevelReport:
+		return logger_schema.Level_report
 	case models.LevelWarning:
 		return logger_schema.Level_warning
 	case models.LevelError:

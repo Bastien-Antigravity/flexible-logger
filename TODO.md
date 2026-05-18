@@ -1,9 +1,19 @@
-- [ ] Implement auto-start logic for `log-server` and `notif-server` if the connection fails or needs a restart.
-  - *Note*: `conn_manager` (via `microservice-toolbox`) now natively handles indefinite network retries with multiplicative backoff. The missing logic is strictly for launching the process itself on a local machine.
-- [ ] Consider adding a unified program launcher that checks service location (via `ip_resolver`) and potentially communicates through `tele-remote`.
- and restart with a function parameter to choose how the reconneciton should behave (e.g. restart the process, try to reconnect, etc.)
-- [ ] Refine `OnError` callback behavior for each logger profile:
-  - Determine if we should trigger a full configuration refresh (`distributed-config`) on repeated connection failures.
-  - Implement logic to potentially restart the destination server (`log-server`/`notif-server`) via `tele-remote` if reconnections keep failing.
-  - Evaluate if certain profiles (e.g., `Audit`) should halt the application entirely if the error handler cannot recover the link after a specific threshold.
-- [ ] Need to remove the microservice-toolbox import, to prevent problems, anyway it should be not used here
+# TODO: flexible-logger
+
+## 🚨 High Priority (Governance Gaps)
+- [ ] **Level Purge (Purger Rule)**: Reduce the 12 log levels to 5 core levels (Debug, Info, Warn, Error, Critical). Use Tags for special categories (FEAT-001). (Approval Required)
+
+## 🏗️ Architecture & Refactoring
+- [ ] Standardize the Cap'n Proto schema for cross-service logging.
+
+## 🧪 Testing & CI/CD
+- [ ] Add benchmarks for `sync.Pool` performance under high load.
+
+## ✅ Completed
+- [x] **v0.0.1 Reliability Patch**:
+    - Fixed `mapLevel` data loss in Cap'n Proto serializer (now supports all 12 levels).
+    - Fixed memory leak in `MultiSink` with zero sinks (FEAT-004).
+    - Fixed goroutine leak in `RemoteNotifier` tests.
+- [x] **Test Suite Expansion**: Added ~20 new tests covering pooling, ref-counting, smart metadata, and concurrency stress.
+- [x] **Audit Reliability**: Implemented `MultiSink` support for the Audit profile (Console + File + Blocking Network).
+- [x] Initial BDD Spec migration.

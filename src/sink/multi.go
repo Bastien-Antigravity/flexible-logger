@@ -28,6 +28,13 @@ func NewMultiSink(sinks ...interfaces.Sink) *MultiSink {
 
 func (ms *MultiSink) Write(entry *models.LogEntry) error {
 	var errs []string
+
+	// Handle zero sinks case to prevent memory leak
+	if len(ms.sinks) == 0 {
+		entry.Release()
+		return nil
+	}
+
 	// Fan-out: We need to send the entry to N sinks.
 	// The entry currently has RefCount=1 (from caller).
 	// We need to consume it N times.

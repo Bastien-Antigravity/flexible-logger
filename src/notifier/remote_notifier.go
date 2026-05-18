@@ -25,7 +25,7 @@ type RemoteNotifier struct {
 	wg         sync.WaitGroup
 	netManager *conn_manager.NetworkManager
 	conn       io.WriteCloser // stored reference for clean shutdown
-	connReady  chan struct{}   // signals that conn has been initialized
+	connReady  chan struct{}  // signals that conn has been initialized
 }
 
 // -----------------------------------------------------------------------------

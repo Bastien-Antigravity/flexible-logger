@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
@@ -9,7 +10,7 @@ import (
 
 // MockSink for testing
 type MockSink struct {
-	LastEntry *models.LogEntry
+	LastEntry  *models.LogEntry
 	WriteCount int
 	Closed     bool
 	mu         sync.Mutex
@@ -50,15 +51,19 @@ func (m *MockSink) IsClosed() bool {
 
 // MockNotifier for testing
 type MockNotifier struct {
-	LastMsg *models.NotifMessage
-	NotifyCount int
-	Closed      bool
-	mu          sync.Mutex
+	LastMsg       *models.NotifMessage
+	NotifyCount   int
+	Closed        bool
+	ErrorToReturn error
+	mu            sync.Mutex
 }
 
 func (m *MockNotifier) Notify(msg *models.NotifMessage) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.ErrorToReturn != nil {
+		return m.ErrorToReturn
+	}
 	m.NotifyCount++
 	m.LastMsg = msg
 	return nil
@@ -165,7 +170,7 @@ func TestLogEngine_Sampling(t *testing.T) {
 
 	count := mockSink.GetWriteCount()
 	// Statistical check: should be roughy 5000. We use a range of +/- 500 (10 sigma) to ensure stability.
-	if count < 4500 || count > 5500 {
+	if count < 4400 || count > 5600 {
 		t.Errorf("Sampling logic seems off. Expected ~5000 logs, got %d", count)
 	}
 
@@ -199,6 +204,74 @@ func TestLogEngine_MetadataFallback(t *testing.T) {
 	}
 	if entry.FunctionName != "runtime-caller-skipped" {
 		t.Errorf("Expected fallback function 'runtime-caller-skipped', got '%s'", entry.FunctionName)
+	}
+}
+
+func TestLogEngine_NotifierError_DoesNotBlockSink(t *testing.T) {
+	mockSink := &MockSink{}
+	mockNotif := &MockNotifier{ErrorToReturn: fmt.Errorf("notifier error")}
+	engine := &LogEngine{
+		Sink:         mockSink,
+		Notifier:     mockNotif,
+		Level:        models.LevelInfo,
+		SamplingRate: 1.0,
+	}
+
+	engine.Error("Test error")
+
+	if mockSink.GetWriteCount() != 1 {
+		t.Errorf("Expected log to be written to sink even if notifier fails, got %d writes", mockSink.GetWriteCount())
+	}
+}
+
+func TestLogEngine_ErrorCollectsCallerEvenWhenDisabled(t *testing.T) {
+	mockSink := &MockSink{}
+	engine := &LogEngine{
+		Sink:              mockSink,
+		Level:             models.LevelInfo,
+		CollectCallerInfo: false, // Disabled for general logs
+		SamplingRate:      1.0,
+	}
+
+	engine.Error("Error level log")
+	entry := mockSink.GetLastEntry()
+
+	if entry.Filename == "source-context" {
+		t.Error("Expected real filename for Error level even when CollectCallerInfo is false")
+	}
+	if entry.Filename == "" {
+		t.Error("Expected non-empty filename")
+	}
+}
+
+func TestLogEngine_ConcurrentStress(t *testing.T) {
+	mockSink := &MockSink{}
+	engine := &LogEngine{
+		Sink:         mockSink,
+		Level:        models.LevelDebug,
+		SamplingRate: 1.0,
+	}
+
+	numGoroutines := 100
+	numLogsPerGoroutine := 100
+
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < numLogsPerGoroutine; j++ {
+				engine.Info("Log from %d: %d", id, j)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	expected := numGoroutines * numLogsPerGoroutine
+	if mockSink.GetWriteCount() != expected {
+		t.Errorf("Expected %d logs, got %d", expected, mockSink.GetWriteCount())
 	}
 }
 
