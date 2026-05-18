@@ -28,6 +28,7 @@ jobs:
       - name: Build Shared Libraries
         run: |
           if grep -q "^build-all:" Makefile; then make build-all; elif grep -q "^build:" Makefile; then make build; fi
+        shell: bash
 
       - name: Package Python SDK
         run: |
