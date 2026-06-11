@@ -50,7 +50,7 @@ func NewCloudLogger(name string, config *distributed_config.Config, useLocalNoti
 		Port string `json:"port"`
 	}
 	var lsCap ServerCap
-	if err := config.GetCapability("log-server", &lsCap); err == nil && lsCap.IP != "" {
+	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
 		publicIP := "127.0.0.1"
 		conn, err := nm.ConnectWithRetry(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name)
 		if err == nil {

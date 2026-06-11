@@ -23,7 +23,7 @@ func (s *JSONSerializer) Serialize(entry *models.LogEntry) ([]byte, error) {
 		return nil, err
 	}
 
-	// Add a newline for file/console stream compatibility
-	data = append(data, '\n')
+	// Add a newline for file/console stream compatibility (CRLF)
+	data = append(data, '\r', '\n')
 	return data, nil
 }

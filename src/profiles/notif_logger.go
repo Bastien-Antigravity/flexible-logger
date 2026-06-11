@@ -45,7 +45,7 @@ func NewNotifLogger(name string, config *distributed_config.Config, useLocalNoti
 	if err != nil {
 		fileSink = sink.NewConsoleSink()
 	} else {
-		fileSink = sink.NewWriterSink(f, serializers.NewCapnpSerializer())
+		fileSink = sink.NewWriterSink(f, serializers.NewTextSerializer())
 	}
 	asyncFile := sink.NewAsyncSink(fileSink, 4096)
 

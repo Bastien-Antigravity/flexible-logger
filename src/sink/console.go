@@ -25,7 +25,7 @@ func (s *ConsoleSink) Write(entry *models.LogEntry) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// Simple text format
-	fmt.Printf("[%s] [%d] %s: %s\n", entry.Timestamp.UTC().Format(time.RFC3339), entry.Level, entry.LoggerName, entry.Message)
+	fmt.Printf("[%s] [%s] %s: %s\r\n", entry.Timestamp.UTC().Format(time.RFC3339), entry.Level.String(), entry.LoggerName, entry.Message)
 	return nil
 }
 
