@@ -1,35 +1,32 @@
 package sink
 
 import (
-	"fmt"
-	"sync"
-	"time"
+	"os"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
+	"github.com/Bastien-Antigravity/flexible-logger/src/serializers"
 )
 
 // -----------------------------------------------------------------------------
 // ConsoleSink writes to stdout in a human-readable format.
 type ConsoleSink struct {
-	mu sync.Mutex
+	inner *WriterSink
 }
 
 // -----------------------------------------------------------------------------
 func NewConsoleSink() *ConsoleSink {
-	return &ConsoleSink{}
+	return &ConsoleSink{
+		inner: NewWriterSink(os.Stdout, serializers.NewTextSerializer()),
+	}
 }
 
 // -----------------------------------------------------------------------------
 func (s *ConsoleSink) Write(entry *models.LogEntry) error {
-	defer entry.Release() // Release ownership
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	// Simple text format
-	fmt.Printf("[%s] [%s] %s: %s\r\n", entry.Timestamp.UTC().Format(time.RFC3339), entry.Level.String(), entry.LoggerName, entry.Message)
-	return nil
+	// WriterSink.Write already handles entry.Release()
+	return s.inner.Write(entry)
 }
 
 // -----------------------------------------------------------------------------
 func (s *ConsoleSink) Close() error {
-	return nil
+	return s.inner.Close()
 }

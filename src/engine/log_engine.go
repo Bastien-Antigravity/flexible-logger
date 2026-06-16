@@ -122,12 +122,10 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 	}
 
 	// Check for Notification triggers
-	// Example strategy: Notify on Warning or above, or specific rules
-	// In govenv this is map-based. Here we do simple level check for demo.
 	if l.Notifier != nil && level >= models.LevelWarning {
 		n := &models.NotifMessage{
 			Message: msg,
-			Tags:    []string{"alert"}, // Default tag
+			Level:   level.String(), // Send the string representation of the level
 		}
 		if err := l.Notifier.Notify(n); err != nil {
 			error_handler.ReportInternalError(l.Name, "notifier", err, msg)

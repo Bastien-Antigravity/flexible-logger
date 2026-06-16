@@ -129,6 +129,7 @@ func (rn *RemoteNotifier) serialize(n *models.NotifMessage) []byte {
 	// Set Fields
 	_ = notifMsg.SetMessage_(n.Message)
 	_ = notifMsg.SetAttachment(n.Attachment)
+	_ = notifMsg.SetLevel(n.Level)
 
 	// Set Tags
 	if len(n.Tags) > 0 {

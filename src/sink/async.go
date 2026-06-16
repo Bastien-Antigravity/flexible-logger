@@ -3,6 +3,7 @@ package sink
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
@@ -16,6 +17,7 @@ type AsyncSink struct {
 	buffer     chan *models.LogEntry
 	wg         sync.WaitGroup
 	bufferSize int
+	closed     atomic.Bool
 	OnError    func(error, *models.LogEntry) // Optional error handler
 }
 
@@ -63,6 +65,11 @@ func (s *AsyncSink) worker() {
 // -----------------------------------------------------------------------------
 
 func (s *AsyncSink) Write(entry *models.LogEntry) error {
+	if s.closed.Load() {
+		entry.Release()
+		return fmt.Errorf("sink closed")
+	}
+
 	select {
 	case s.buffer <- entry:
 		return nil
@@ -75,6 +82,9 @@ func (s *AsyncSink) Write(entry *models.LogEntry) error {
 // -----------------------------------------------------------------------------
 
 func (s *AsyncSink) Close() error {
+	if s.closed.Swap(true) {
+		return nil // Already closed
+	}
 	close(s.buffer)
 	s.wg.Wait()
 	return s.next.Close()

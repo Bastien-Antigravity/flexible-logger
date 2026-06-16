@@ -23,7 +23,7 @@ func NewDevelLogger(name string, useLocalNotif bool) interfaces.Logger {
 	consoleSink := sink.NewConsoleSink()
 
 	// 2. File Sink
-	logPath := helpers.GetDefaultLogPath()
+	logPath := helpers.GetLogPath(name)
 	var fileSink interfaces.Sink
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

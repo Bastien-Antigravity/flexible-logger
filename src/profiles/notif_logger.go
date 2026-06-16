@@ -39,7 +39,7 @@ func NewNotifLogger(name string, config *distributed_config.Config, useLocalNoti
 	asyncConsole := sink.NewAsyncSink(consoleSink, 1024)
 
 	// 2. File (Async)
-	logPath := helpers.GetDefaultLogPath()
+	logPath := helpers.GetLogPath(name)
 	var fileSink interfaces.Sink
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

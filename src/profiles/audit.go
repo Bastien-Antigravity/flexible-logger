@@ -28,7 +28,7 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 	consoleSink := sink.NewConsoleSink()
 
 	// 2. File (Sync)
-	logPath := helpers.GetDefaultLogPath()
+	logPath := helpers.GetLogPath(name)
 	var fileSink interfaces.Sink
 	if f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
 		fileSink = sink.NewWriterSink(f, serializers.NewTextSerializer())
