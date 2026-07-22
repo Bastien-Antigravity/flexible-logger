@@ -26,7 +26,7 @@ import (
 func NewCloudLogger(name string, config *distributed_config.Config, useLocalNotif bool) interfaces.Logger {
 	// 1. Console (Async JSON)
 	consoleSink := sink.NewConsoleSink()
-	jsonConsole := sink.NewWriterSink(os.Stdout, serializers.NewJSONSerializer())
+	jsonConsole := sink.NewWriterSink(os.Stderr, serializers.NewJSONSerializer())
 	asyncConsole := sink.NewAsyncSink(jsonConsole, 2048)
 
 	// 2. File (Async JSON)

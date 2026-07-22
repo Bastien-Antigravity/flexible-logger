@@ -1,0 +1,5 @@
+2026-06-28T21:29:23.019283000Z    iMac.local   TestLogServer          INFO       source-context       runtime-caller-skipped    0      Test message from connection_test.go [metadata: pid=69404 pname=test-log-server.test]
+2026-06-28T21:29:23.019288000Z    iMac.local   TestLogServer          INFO       source-context       runtime-caller-skipped    0      Test message from connection_test.go [metadata: pid=69404 pname=test-log-server.test]
+2026-06-28T21:29:23.019291000Z    iMac.local   TestLogServer          INFO       source-context       runtime-caller-skipped    0      Test message from connection_test.go [metadata: pid=69404 pname=test-log-server.test]
+2026-06-28T21:29:23.019291000Z    iMac.local   TestLogServer          INFO       source-context       runtime-caller-skipped    0      Test message from connection_test.go [metadata: pid=69404 pname=test-log-server.test]
+2026-06-28T21:29:23.019292000Z    iMac.local   TestLogServer          INFO       source-context       runtime-caller-skipped    0      Test message from connection_test.go [metadata: pid=69404 pname=test-log-server.test]

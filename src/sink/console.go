@@ -16,7 +16,7 @@ type ConsoleSink struct {
 // -----------------------------------------------------------------------------
 func NewConsoleSink() *ConsoleSink {
 	return &ConsoleSink{
-		inner: NewWriterSink(os.Stdout, serializers.NewTextSerializer()),
+		inner: NewWriterSink(os.Stderr, serializers.NewTextSerializer()),
 	}
 }
 

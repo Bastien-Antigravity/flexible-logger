@@ -7,8 +7,9 @@ tags:
 - '#service/flexible-logger'
 - '#domain/observability'
 - '#zone/3-fleet'
+- '#type/testing'
+- '#state/active'
 ---
-
 # Testing Playbook
 
 This playbook outlines the testing architecture, validation strategies, mock infrastructure, and benchmarking protocols for the Flexible Logger library.

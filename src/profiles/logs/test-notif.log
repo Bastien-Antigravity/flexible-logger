@@ -1,0 +1,2 @@
+2026-06-28T21:29:26.335949000Z    iMac.local   test-notif             ERROR      profiles_test.go     profiles.TestNotifLogger_ 143    Critical failure detected [metadata: path=/Users/imac/Desktop/Bastien-Antigravity/flexible-logger/src/profiles/profiles_test.go pid=69411 pname=profiles.test]
+2026-06-28T21:29:26.335965000Z    iMac.local   test-notif             INFO       source-context       runtime-caller-skipped    0      Normal operation [metadata: pid=69411 pname=profiles.test]

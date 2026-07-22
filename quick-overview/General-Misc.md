@@ -7,8 +7,9 @@ tags:
 - '#service/flexible-logger'
 - '#domain/observability'
 - '#zone/3-fleet'
+- '#type/general'
+- '#state/active'
 ---
-
 # General & Miscellaneous Guidelines
 
 This document contains miscellaneous guidelines, fallback behaviors, and operational integration details for the Flexible Logger library.

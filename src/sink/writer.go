@@ -2,6 +2,7 @@ package sink
 
 import (
 	"io"
+	"os"
 	"sync"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
@@ -39,6 +40,9 @@ func (s *WriterSink) Write(entry *models.LogEntry) error {
 
 // -----------------------------------------------------------------------------
 func (s *WriterSink) Close() error {
+	if s.w == os.Stdout || s.w == os.Stderr || s.w == os.Stdin {
+		return nil
+	}
 	if closer, ok := s.w.(io.Closer); ok {
 		return closer.Close()
 	}

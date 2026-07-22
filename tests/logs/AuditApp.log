@@ -1,0 +1,1 @@
+2026-06-28T21:29:27.877488000Z    iMac.local   AuditApp               INFO       integration_test.go  tests.TestPremium_AuditBl 81     Audit Trail: Secure transaction initiated [metadata: path=/Users/imac/Desktop/Bastien-Antigravity/flexible-logger/tests/integration_test.go pid=69426 pname=tests.test]

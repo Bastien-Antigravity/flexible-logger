@@ -7,8 +7,9 @@ tags:
 - '#service/flexible-logger'
 - '#domain/observability'
 - '#zone/3-fleet'
+- '#type/behavior'
+- '#state/active'
 ---
-
 # Features & Behavior
 
 This document details the operational behavior, profiles, metadata policies, and connection resilience strategies of the Flexible Logger.

@@ -7,8 +7,9 @@ tags:
 - '#service/flexible-logger'
 - '#domain/observability'
 - '#zone/3-fleet'
+- '#type/architecture'
+- '#state/active'
 ---
-
 # Architecture Overview
 
 This document describes the high-level design, data flows, and key internal components of the Flexible Logger.
