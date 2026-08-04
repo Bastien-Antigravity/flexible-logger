@@ -2,6 +2,11 @@
 microservice: flexible-logger
 type: governance
 status: active
+tags:
+- '#service/flexible-logger'
+- '#type/governance'
+- '#state/active'
+- '#zone/3-fleet'
 ---
 
 # ⚡ AI Initialization: flexible-logger

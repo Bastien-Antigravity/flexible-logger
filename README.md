@@ -8,6 +8,8 @@ tags:
 - '#service/flexible-logger'
 - '#domain/observability'
 - '#zone/3-fleet'
+- '#type/repository'
+- '#state/active'
 ---
 
 # Flexible Logger

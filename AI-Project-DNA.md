@@ -1,4 +1,13 @@
-# 🧬 Project DNA: flexible-logger
+---
+microservice: 08-Base-Scripts
+type: note
+status: active
+tags:
+- '#service/08-Base-Scripts'
+- '#type/note'
+- '#state/active'
+- '#zone/3-fleet'
+---# 🧬 Project DNA: flexible-logger
 
 ## 🎯 High-Level Intent (BDD)
 - **Goal**: Versatile logging component supporting multiple sinks (Console, File, NATS).
@@ -6,10 +15,10 @@
 
 ## 🛠 Technical Constraints
 - **Language**: Go
-- **Architecture Standard**: Adheres to the ecosystem-wide standards in [[GEMINI.md]].
+- **Architecture Standard**: Adheres to the ecosystem-wide standards in .
 
 ## 👥 Roles & Responsibilities
 - **Architect**: 
     - Ensure logging overhead doesn't impact core processing performance.
 - **Developer**:
-    - Reference [[GEMINI.md]] for centralized log visualization UI standards.
+    - Reference  for centralized log visualization UI standards.

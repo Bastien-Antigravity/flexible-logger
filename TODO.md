@@ -1,4 +1,13 @@
-# TODO: flexible-logger
+---
+microservice: 08-Base-Scripts
+type: note
+status: active
+tags:
+- '#service/08-Base-Scripts'
+- '#type/note'
+- '#state/active'
+- '#zone/3-fleet'
+---# TODO: flexible-logger
 
 ## 🚨 High Priority (Governance Gaps)
 - [ ] **Level Purge (Purger Rule)**: Reduce the 12 log levels to 5 core levels (Debug, Info, Warn, Error, Critical). Use Tags for special categories (FEAT-001). (Approval Required)
