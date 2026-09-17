@@ -1,5 +1,19 @@
 package models
 
+// =============================================================================
+// ESSENTIAL PROCESS: Core LogEntry model representing structured log events with atomic reference counting for zero-allocation pooling.
+//
+// DATA FLOW:
+//   1. Allocated from global sync.Pool.
+//   2. Populated with timestamp, severity, payload, and caller metadata.
+//   3. Passed across sinks with atomic Retain / Release ref-counting.
+//   4. Recycled back to sync.Pool when ref-count reaches zero.
+//
+// KEY PARAMETERS:
+//   - LogEntry: Core event model.
+//   - refCount: Atomic counter governing pool recycling.
+// =============================================================================
+
 import (
 	"sync/atomic"
 	"time"

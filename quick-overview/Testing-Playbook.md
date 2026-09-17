@@ -65,7 +65,7 @@ flowchart TD
 
     Verification -->|GC Pressure| GoBench[Go Benchmark Suite]:::perf
     Verification -->|Mock Servers| MockInfra[mock_server.go TCP Sinks]:::perf
-    Verification -->|Visual Checks| PremiumVerify[verify_premium_features.go]:::perf
+    Verification -->|Integration Tests| PremiumVerify[tests/integration_test.go]:::perf
 ```
 
 ### 1. Unit Testing (Isolated)
@@ -128,12 +128,15 @@ This routine:
 2.  Bootstraps a local `HighPerfLogger` profile targeting these sockets.
 3.  Transmits exactly **1,000,000** log entries and calculates throughput metrics (logs/second).
 
-### 4. Visual Verification of Premium Features
-To manually examine structured JSON, smart sampling, and compliance blocking:
+### 4. Verification of Premium Features & Console Output
+To verify audit blocking, smart sampling, and ecosystem handshakes:
 ```bash
-go run scratch/verify_premium_features.go
+go test -v ./tests -run TestPremium
 ```
-This utility exercises the `CloudNative` profile (emitting pure JSON lines to standard out) and asserts that standard probabilistic sampling effectively scales log volume without dropping crucial Error levels.
+To visually inspect structured 8-column text output:
+```bash
+go run cmd/see-console-output/example_text_output.go
+```
 
 ---
 

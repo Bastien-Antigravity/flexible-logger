@@ -1,5 +1,18 @@
 package main
 
+// =============================================================================
+// ESSENTIAL PROCESS: Interactive test harness client validating live TCP streaming to an external log-server daemon.
+//
+// DATA FLOW:
+//   1. Resolves log_server capability from standalone configuration.
+//   2. Establishes connection using NoLockLogger profile.
+//   3. Streams batches of informational and error logs to remote daemon.
+//
+// KEY PARAMETERS:
+//   - distConf: Configuration specifying target log-server address.
+//   - count: Number of test iterations to transmit.
+// =============================================================================
+
 import (
 	"fmt"
 	"time"

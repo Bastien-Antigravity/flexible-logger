@@ -1,5 +1,18 @@
 package engine
 
+// =============================================================================
+// ESSENTIAL PROCESS: Unit tests validating log level filtering, dynamic caller metadata enrichment, sampling, and sink lifecycle in LogEngine.
+//
+// DATA FLOW:
+//   1. Constructs mock sinks and test LogEngine instances.
+//   2. Executes logging methods across all severity levels.
+//   3. Asserts level suppression, caller frame capture, and object recycling.
+//
+// KEY PARAMETERS:
+//   - t: Testing harness pointer.
+//   - mockSink: Test sink capturing emitted LogEntry instances.
+// =============================================================================
+
 import (
 	"fmt"
 	"sync"

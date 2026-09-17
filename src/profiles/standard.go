@@ -1,5 +1,19 @@
 package profiles
 
+// =============================================================================
+// ESSENTIAL PROCESS: Standard fleet logging profile balancing synchronous local file/console persistence with asynchronous remote network streaming.
+//
+// DATA FLOW:
+//   1. Initializes synchronous Console and local File sinks.
+//   2. Resolves log_server capability and attaches buffered AsyncSink.
+//   3. Configures LogEngine with Info threshold and attaches RemoteNotifier.
+//
+// KEY PARAMETERS:
+//   - name: Microservice name.
+//   - config: Distributed configuration provider.
+//   - useLocalNotif: Alert routing mode selector.
+// =============================================================================
+
 import (
 	"fmt"
 	"os"
@@ -31,45 +45,43 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 	// 2. File (Sync)
 	logPath := helpers.GetLogPath(name)
 	var fileSink interfaces.Sink
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "StandardLogger: Failed to open log file %s: %v\n", logPath, err)
-		os.Exit(1)
-	} else {
+	if f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
 		fileSink = sink.NewWriterSink(f, serializers.NewTextSerializer())
+	} else {
+		fmt.Fprintf(os.Stderr, "StandardLogger: Failed to open log file %s: %v, falling back to console\n", logPath, err)
+		fileSink = consoleSink
 	}
 
 	// 3. Network (Async)
-	// We block now until connection is established, per requirements.
-	nm := conn_manager.NewStandardStrategy(nil)
-	nm.OnError = func(attempt int, err error, source string, msg string) {
-		error_handler.ReportInternalError(name, source, err, msg)
-	}
+	var networkSink interfaces.Sink
+	publicIP := "127.0.0.1"
 
 	type ServerCap struct {
 		IP   string `json:"ip"`
 		Port string `json:"port"`
 	}
 	var lsCap ServerCap
-	if err := config.GetCapability("log_server", &lsCap); err != nil || lsCap.IP == "" {
-		fmt.Fprintf(os.Stderr, "StandardLogger: Logger configuration missing\n")
-		os.Exit(1)
+	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
+		nm := conn_manager.NewStandardStrategy(nil)
+		nm.OnError = func(attempt int, err error, source string, msg string) {
+			error_handler.ReportInternalError(name, source, err, msg)
+		}
+		conn := nm.Connect(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name, conn_manager.ModeIndefinite)
+		if conn != nil {
+			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
+			networkSink = sink.NewAsyncSink(ns, 4096)
+		}
+	} else {
+		fmt.Fprintf(os.Stderr, "StandardLogger: Logger configuration missing for log_server, running in local-only mode\n")
 	}
 
-	// Default public IP
-	publicIP := "127.0.0.1"
-
-	// Block until connected.
-	conn := nm.Connect(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name, conn_manager.ModeIndefinite)
-
-	// Create WriterSink with CapnpSerializer
-	// sink.NewWriterSink(io.WriteCloser, Serializer)
-	ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
-	// Use AsyncSink for network as per requirement (Async)
-	networkSink := sink.NewAsyncSink(ns, 4096)
-
 	// 4. Combine
-	multi := sink.NewMultiSink(consoleSink, fileSink, networkSink)
+	var sinks []interfaces.Sink
+	sinks = append(sinks, consoleSink, fileSink)
+	if networkSink != nil {
+		sinks = append(sinks, networkSink)
+	}
+	multi := sink.NewMultiSink(sinks...)
 
 	// 5. Engine
 	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0).(*engine.LogEngine)
@@ -84,16 +96,12 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 		}
 	}
 
-	// RemoteNotifier handles its own connection/retry logic.
 	var nsCap ServerCap
-	if err := config.GetCapability("notif_server", &nsCap); err != nil || nsCap.IP == "" {
-		fmt.Fprintf(os.Stderr, "StandardLogger: Notification configuration missing\n")
-		os.Exit(1)
+	if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
+		notifIpPtr := &nsCap.IP
+		notifPortPtr := &nsCap.Port
+		logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP, name)
 	}
-	notifIpPtr := &nsCap.IP
-	notifPortPtr := &nsCap.Port
-
-	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP, name)
 
 	return logger
 }

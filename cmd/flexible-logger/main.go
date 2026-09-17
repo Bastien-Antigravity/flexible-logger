@@ -1,5 +1,19 @@
 package main
 
+// =============================================================================
+// ESSENTIAL PROCESS: Standalone demonstration and benchmarking CLI for the flexible-logger library.
+//
+// DATA FLOW:
+//   1. Loads standalone distributed configuration.
+//   2. Initializes StandardLogger profile with local file and console sinks.
+//   3. Dispatches sample log messages and measures throughput upon flush.
+//
+// KEY PARAMETERS:
+//   - distConf: Configuration provider loaded from standalone.yaml.
+//   - perfLog: StandardLogger instance under benchmark.
+//   - x: Number of log iterations to emit.
+// =============================================================================
+
 import (
 	"fmt"
 	"time"

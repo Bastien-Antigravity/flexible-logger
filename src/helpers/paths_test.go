@@ -1,5 +1,16 @@
 package helpers
 
+// =============================================================================
+// ESSENTIAL PROCESS: Unit tests validating default and named log path resolution and directory creation.
+//
+// DATA FLOW:
+//   1. Calls GetDefaultLogPath and GetLogPath.
+//   2. Verifies .log extension, directory existence, and executable name matching.
+//
+// KEY PARAMETERS:
+//   - t: Testing harness.
+// =============================================================================
+
 import (
 	"os"
 	"path/filepath"

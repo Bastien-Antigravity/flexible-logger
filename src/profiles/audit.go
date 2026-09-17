@@ -1,5 +1,20 @@
 package profiles
 
+// =============================================================================
+// ESSENTIAL PROCESS: Audit logging profile enforcing strict synchronous file and network delivery without sampling.
+//
+// DATA FLOW:
+//   1. Initializes synchronous Console and local File sinks.
+//   2. Connects to log-server in blocking mode (ModeIndefinite).
+//   3. Wraps connection in synchronous WriterSink with Cap'n Proto serializer.
+//   4. Combines into MultiSink and returns fully synchronous audit logger.
+//
+// KEY PARAMETERS:
+//   - name: Service or component name.
+//   - config: Distributed configuration carrying log_server coordinates.
+//   - useLocalNotif: Boolean controlling local channel versus remote notification.
+// =============================================================================
+
 import (
 	"os"
 

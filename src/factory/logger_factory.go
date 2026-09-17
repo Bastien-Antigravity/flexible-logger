@@ -1,5 +1,21 @@
 package factory
 
+// =============================================================================
+// ESSENTIAL PROCESS: Factory module for instantiating fully configured LogEngine instances with system metadata.
+//
+// DATA FLOW:
+//   1. Discovers host OS parameters (hostname, process ID, executable name).
+//   2. Configures LogEngine with designated sink, severity level, and sampling.
+//   3. Returns initialized interfaces.Logger instance.
+//
+// KEY PARAMETERS:
+//   - name: Application or logger identifier.
+//   - level: Filtering threshold for log emission.
+//   - sink: Root destination sink.
+//   - collectCallerInfo: Flag controlling stack frame resolution.
+//   - samplingRate: Frequency ratio for sampling low-severity logs.
+// =============================================================================
+
 import (
 	"os"
 	"path/filepath"

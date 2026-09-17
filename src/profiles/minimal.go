@@ -1,5 +1,18 @@
 package profiles
 
+// =============================================================================
+// ESSENTIAL PROCESS: Minimalist logging profile buffering asynchronous text output to console without file or network overhead.
+//
+// DATA FLOW:
+//   1. Initializes ConsoleSink wrapped in lightweight AsyncSink.
+//   2. Binds LogEngine with Info severity threshold.
+//   3. Provides zero-dependency logger for lightweight CLI tools.
+//
+// KEY PARAMETERS:
+//   - name: CLI or utility identifier.
+//   - useLocalNotif: Alert queue selector.
+// =============================================================================
+
 import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/engine"
 	"github.com/Bastien-Antigravity/flexible-logger/src/factory"

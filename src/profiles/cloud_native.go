@@ -1,5 +1,19 @@
 package profiles
 
+// =============================================================================
+// ESSENTIAL PROCESS: Cloud-native logging profile emitting asynchronous JSON to stdout and rotating files for container log collectors.
+//
+// DATA FLOW:
+//   1. Initializes asynchronous JSON sinks for stderr and local file.
+//   2. Optionally connects to centralized log-server via Cap'n Proto.
+//   3. Combines sinks using MultiSink for high throughput in Kubernetes pods.
+//
+// KEY PARAMETERS:
+//   - name: Microservice name.
+//   - config: Distributed configuration provider.
+//   - useLocalNotif: Notification queue mode flag.
+// =============================================================================
+
 import (
 	"os"
 

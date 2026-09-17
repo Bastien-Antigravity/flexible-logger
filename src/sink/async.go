@@ -1,5 +1,19 @@
 package sink
 
+// =============================================================================
+// ESSENTIAL PROCESS: Asynchronous channel-buffered sink decoupling caller execution from underlying I/O latency.
+//
+// DATA FLOW:
+//   1. Receives LogEntry in non-blocking select buffer.
+//   2. Background worker goroutine pops entries and retains references.
+//   3. Delegates to downstream Sink and releases reference after write.
+//
+// KEY PARAMETERS:
+//   - buffer: Buffered channel queue.
+//   - next: Downstream target sink.
+//   - OnError: Optional callback for write failures.
+// =============================================================================
+
 import (
 	"fmt"
 	"sync"

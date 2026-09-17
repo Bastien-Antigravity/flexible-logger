@@ -1,5 +1,19 @@
 package profiles
 
+// =============================================================================
+// ESSENTIAL PROCESS: Specialized profile exposing programmable local event hooks for microservices that react in-process to errors.
+//
+// DATA FLOW:
+//   1. Instantiates asynchronous multi-sink logger engine.
+//   2. Attaches LocalNotifier with dedicated memory queue.
+//   3. Wraps engine in NotifLoggerWrapper exposing SetLocalNotifQueue.
+//
+// KEY PARAMETERS:
+//   - name: Microservice name.
+//   - config: Distributed configuration provider.
+//   - useLocalNotif: Selector for notification handling.
+// =============================================================================
+
 import (
 	"fmt"
 	"os"
@@ -32,6 +46,13 @@ func (nl *NotifLoggerWrapper) SetLocalNotifQueue(notifChan chan *models.NotifMes
 
 // -----------------------------------------------------------------------------
 
+// Unwrap returns the underlying Logger instance.
+func (nl *NotifLoggerWrapper) Unwrap() any {
+	return nl.Logger
+}
+
+// -----------------------------------------------------------------------------
+
 // NewNotifLogger creates a logger similar to NoLockLogger but with LocalNotifier.
 func NewNotifLogger(name string, config *distributed_config.Config, useLocalNotif bool) *NotifLoggerWrapper {
 	// 1. Console (Async)
@@ -57,28 +78,31 @@ func NewNotifLogger(name string, config *distributed_config.Config, useLocalNoti
 		Port string `json:"port"`
 	}
 	var lsCap ServerCap
-	if err := config.GetCapability("log_server", &lsCap); err != nil || lsCap.IP == "" {
-		fmt.Fprintf(os.Stderr, "NotifLogger: Logger configuration missing\n")
-		os.Exit(1)
-	}
-	ipPtr := &lsCap.IP
-	portPtr := &lsCap.Port
-
-	// Default public IP
+	var networkSink interfaces.Sink
 	publicIP := "127.0.0.1"
 
-	conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp-hello:"+name)
-	var networkSink interfaces.Sink
-	if err == nil {
-		ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
-		networkSink = sink.NewAsyncSink(ns, 8192)
+	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
+		ipPtr := &lsCap.IP
+		portPtr := &lsCap.Port
+
+		conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp-hello:"+name)
+		if err == nil {
+			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
+			networkSink = sink.NewAsyncSink(ns, 8192)
+		} else {
+			fmt.Fprintf(os.Stderr, "NotifLogger: Failed to connect to log server: %v\n", err)
+		}
 	} else {
-		fmt.Fprintf(os.Stderr, "NotifLogger: Failed to connect to log server: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "NotifLogger: Logger configuration missing for log_server, running local-only\n")
 	}
 
 	// 4. MultiSink
-	multi := sink.NewMultiSink(asyncConsole, asyncFile, networkSink)
+	var sinks []interfaces.Sink
+	sinks = append(sinks, asyncConsole, asyncFile)
+	if networkSink != nil {
+		sinks = append(sinks, networkSink)
+	}
+	multi := sink.NewMultiSink(sinks...)
 
 	// 5. Engine
 	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, false, 0).(*engine.LogEngine)

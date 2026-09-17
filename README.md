@@ -93,5 +93,3 @@ logger := profiles.NewMinimalLogger("cli-app", false)
 // 8. Development (Verbose & Synchronous)
 logger := profiles.NewDevelLogger("dev-app", false)
 ```
-
-```

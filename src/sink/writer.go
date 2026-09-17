@@ -1,5 +1,19 @@
 package sink
 
+// =============================================================================
+// ESSENTIAL PROCESS: Thread-safe sink wrapping an arbitrary io.Writer (files, network connections, buffers) with a Serializer.
+//
+// DATA FLOW:
+//   1. Accepts LogEntry and defers entry.Release().
+//   2. Serializes entry using configured Serializer.
+//   3. Acquires mutex lock and writes byte slice to io.Writer.
+//
+// KEY PARAMETERS:
+//   - w: Target io.Writer destination.
+//   - serializer: Formatter encoding LogEntry into bytes.
+//   - mu: Mutex synchronizing writes.
+// =============================================================================
+
 import (
 	"io"
 	"os"
@@ -15,6 +29,7 @@ type WriterSink struct {
 	w          io.Writer
 	serializer interfaces.Serializer
 	mu         sync.Mutex
+	closeOnce  sync.Once
 }
 
 // -----------------------------------------------------------------------------
@@ -40,11 +55,14 @@ func (s *WriterSink) Write(entry *models.LogEntry) error {
 
 // -----------------------------------------------------------------------------
 func (s *WriterSink) Close() error {
-	if s.w == os.Stdout || s.w == os.Stderr || s.w == os.Stdin {
-		return nil
-	}
-	if closer, ok := s.w.(io.Closer); ok {
-		return closer.Close()
-	}
-	return nil
+	var err error
+	s.closeOnce.Do(func() {
+		if s.w == os.Stdout || s.w == os.Stderr || s.w == os.Stdin {
+			return
+		}
+		if closer, ok := s.w.(io.Closer); ok {
+			err = closer.Close()
+		}
+	})
+	return err
 }

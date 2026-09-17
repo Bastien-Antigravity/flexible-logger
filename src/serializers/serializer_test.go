@@ -1,5 +1,16 @@
 package serializers
 
+// =============================================================================
+// ESSENTIAL PROCESS: Unit tests verifying text, JSON, and Cap'n Proto serialization parity and field integrity.
+//
+// DATA FLOW:
+//   1. Encodes sample LogEntry using Text, JSON, and Cap'n Proto serializers.
+//   2. Asserts format compliance, field roundtrips, and level enum fidelity.
+//
+// KEY PARAMETERS:
+//   - t: Testing context.
+// =============================================================================
+
 import (
 	"encoding/json"
 	"strings"
@@ -62,18 +73,24 @@ func TestTextSerializer(t *testing.T) {
 	}
 
 	str := string(data)
-	// Format: [TIMESTAMP] [LEVEL] [PID] [FILE:LINE] LOGGER: MESSAGE\n
-	if !strings.Contains(str, "[INFO") {
-		t.Errorf("Expected level [INFO], got %s", str)
+	// Format: Fixed-width 8 columns (timestamp host logger level file func line msg [metadata: ...])
+	if !strings.Contains(str, "INFO") {
+		t.Errorf("Expected level INFO, got %s", str)
 	}
-	if !strings.Contains(str, "[123]") {
-		t.Errorf("Expected PID [123], got %s", str)
+	if !strings.Contains(str, "pid=123") {
+		t.Errorf("Expected PID metadata pid=123, got %s", str)
 	}
-	if !strings.Contains(str, "[test.go:42]") {
-		t.Errorf("Expected source [test.go:42], got %s", str)
+	if !strings.Contains(str, "test.go") {
+		t.Errorf("Expected filename test.go, got %s", str)
 	}
-	if !strings.Contains(str, "test-logger: test message") {
-		t.Errorf("Expected logger/message, got %s", str)
+	if !strings.Contains(str, "42") {
+		t.Errorf("Expected line number 42, got %s", str)
+	}
+	if !strings.Contains(str, "test-logger") {
+		t.Errorf("Expected logger name test-logger, got %s", str)
+	}
+	if !strings.Contains(str, "test message") {
+		t.Errorf("Expected message test message, got %s", str)
 	}
 }
 

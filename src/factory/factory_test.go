@@ -1,5 +1,16 @@
 package factory
 
+// =============================================================================
+// ESSENTIAL PROCESS: Unit tests for the LogEngine constructor factory.
+//
+// DATA FLOW:
+//   1. Invokes CreateLogEngine with specified levels and mock sinks.
+//   2. Validates resulting LogEngine fields, process IDs, and hostname resolution.
+//
+// KEY PARAMETERS:
+//   - t: Testing harness.
+// =============================================================================
+
 import (
 	"os"
 	"path/filepath"

@@ -1,5 +1,18 @@
 package serializers
 
+// =============================================================================
+// ESSENTIAL PROCESS: Fixed-width 8-column text serialization engine mirroring Rust log-server output format.
+//
+// DATA FLOW:
+//   1. Formats fixed-width columns (timestamp, host, logger, level, file, func, line, msg).
+//   2. Appends optional bracketed key-value metadata tags.
+//   3. Emits newline-terminated human-readable byte slice.
+//
+// KEY PARAMETERS:
+//   - TextSerializer: Serializer struct.
+//   - truncate: String width clamping utility.
+// =============================================================================
+
 import (
 	"fmt"
 	"strings"

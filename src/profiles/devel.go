@@ -1,5 +1,18 @@
 package profiles
 
+// =============================================================================
+// ESSENTIAL PROCESS: Development logging profile providing synchronous, human-readable console and local file output at Debug level.
+//
+// DATA FLOW:
+//   1. Configures synchronous ConsoleSink with TextSerializer.
+//   2. Configures synchronous local FileSink at resolved path.
+//   3. Combines sinks in MultiSink with Debug severity threshold.
+//
+// KEY PARAMETERS:
+//   - name: Application identifier.
+//   - useLocalNotif: Notification routing flag.
+// =============================================================================
+
 import (
 	"fmt"
 	"os"
@@ -27,8 +40,8 @@ func NewDevelLogger(name string, useLocalNotif bool) interfaces.Logger {
 	var fileSink interfaces.Sink
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "DevelLogger: Failed to open log file %s: %v\n", logPath, err)
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "DevelLogger: Failed to open log file %s: %v, falling back to console\n", logPath, err)
+		fileSink = consoleSink
 	} else {
 		// Use TextSerializer for development logs so they are readable in the file
 		fileSink = sink.NewWriterSink(f, serializers.NewTextSerializer())

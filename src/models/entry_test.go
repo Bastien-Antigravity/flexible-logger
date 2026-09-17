@@ -1,5 +1,17 @@
 package models
 
+// =============================================================================
+// ESSENTIAL PROCESS: Unit tests for LogEntry pooling, field reset, and atomic reference count lifecycle.
+//
+// DATA FLOW:
+//   1. Retrieves LogEntry instances from sync.Pool.
+//   2. Exercises Retain and Release across concurrent goroutines.
+//   3. Asserts clean field zeroing and safe recycling behavior.
+//
+// KEY PARAMETERS:
+//   - t: Testing context.
+// =============================================================================
+
 import (
 	"sync/atomic"
 	"testing"

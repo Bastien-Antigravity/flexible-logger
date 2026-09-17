@@ -1,11 +1,29 @@
 package engine
 
+// =============================================================================
+// ESSENTIAL PROCESS: Core logging engine coordinating log entry acquisition, dynamic metadata sampling, filtering, and sink dispatch.
+//
+// DATA FLOW:
+//   1. Receives log invocation (Level, format, arguments).
+//   2. Evaluates severity threshold and optional probabilistic sampling.
+//   3. Borrows LogEntry from sync.Pool and enriches with caller metadata.
+//   4. Dispatches entry to configured primary Sink.
+//   5. Triggers Notifier on Warning or Error severity levels.
+//
+// KEY PARAMETERS:
+//   - Sink: Destination sink handling log persistence or network routing.
+//   - Notifier: Optional alert dispatcher for high-severity events.
+//   - Level: Configured minimum logging severity threshold.
+//   - SamplingRate: Statistical sampling ratio for non-critical entries.
+// =============================================================================
+
 import (
 	"fmt"
 	"math/rand"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
@@ -31,6 +49,8 @@ type LogEngine struct {
 	CallerSkip          int  // Optional offset to skip more frames (for wrapper libraries)
 	SamplingRate        float64
 	AlwaysCollectCaller bool // (Redundant if we use logic below, let's keep it simple)
+
+	closeOnce sync.Once
 }
 
 // -----------------------------------------------------------------------------
@@ -52,14 +72,18 @@ func (l *LogEngine) SetCallerSkip(skip int) {
 
 // -----------------------------------------------------------------------------
 func (l *LogEngine) Close() {
-	if err := l.Sink.Close(); err != nil {
-		error_handler.ReportInternalError(l.Name, "sink.Close", err, "")
-	}
-	if l.Notifier != nil {
-		if err := l.Notifier.Close(); err != nil {
-			error_handler.ReportInternalError(l.Name, "notifier.Close", err, "")
+	l.closeOnce.Do(func() {
+		if l.Sink != nil {
+			if err := l.Sink.Close(); err != nil {
+				error_handler.ReportInternalError(l.Name, "sink.Close", err, "")
+			}
 		}
-	}
+		if l.Notifier != nil {
+			if err := l.Notifier.Close(); err != nil {
+				error_handler.ReportInternalError(l.Name, "notifier.Close", err, "")
+			}
+		}
+	})
 }
 
 // -----------------------------------------------------------------------------
@@ -126,6 +150,66 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 		n := &models.NotifMessage{
 			Message: msg,
 			Level:   level.String(), // Send the string representation of the level
+		}
+		if err := l.Notifier.Notify(n); err != nil {
+			error_handler.ReportInternalError(l.Name, "notifier", err, msg)
+		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+func (l *LogEngine) LogWithCaller(level models.Level, msg, file, line, function, module string) {
+	if level < l.Level {
+		return
+	}
+
+	// Sampling logic
+	if l.SamplingRate > 0 && l.SamplingRate < 1.0 && level < models.LevelWarning {
+		if rand.Float64() > l.SamplingRate {
+			return
+		}
+	}
+
+	e := models.EntryPool.Get().(*models.LogEntry)
+	e.Reset()
+	e.Timestamp = time.Now().UTC()
+	e.Level = level
+	e.Message = msg
+	e.LoggerName = l.Name
+	e.Hostname = l.Hostname
+	e.ServiceName = l.ServiceName
+
+	// Static Metadata
+	e.ProcessID = strconv.Itoa(l.ProcessID)
+	e.ProcessName = l.ProcessName
+
+	// Dynamic Metadata from Explicit Caller Arguments
+	if file != "" {
+		e.Filename = file
+	} else {
+		e.Filename = "unknown"
+	}
+	if line != "" {
+		e.LineNumber = line
+	} else {
+		e.LineNumber = "0"
+	}
+	if function != "" {
+		e.FunctionName = function
+	} else {
+		e.FunctionName = "unknown"
+	}
+	e.Module = module
+
+	if err := l.Sink.Write(e); err != nil {
+		error_handler.ReportInternalError(l.Name, "sink", err, msg)
+	}
+
+	// Check for Notification triggers
+	if l.Notifier != nil && level >= models.LevelWarning {
+		n := &models.NotifMessage{
+			Message: msg,
+			Level:   level.String(),
 		}
 		if err := l.Notifier.Notify(n); err != nil {
 			error_handler.ReportInternalError(l.Name, "notifier", err, msg)

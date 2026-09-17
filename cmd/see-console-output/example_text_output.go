@@ -1,5 +1,18 @@
 package main
 
+// =============================================================================
+// ESSENTIAL PROCESS: Interactive visual inspection tool demonstrating 8-column log formatting.
+//
+// DATA FLOW:
+//   1. Creates a sample LogEntry structure.
+//   2. Serializes entry using TextSerializer into canonical 8-column format.
+//   3. Emits formatted byte stream directly to standard output.
+//
+// KEY PARAMETERS:
+//   - serializer: TextSerializer instance under demonstration.
+//   - entry: Sample LogEntry struct with metadata.
+// =============================================================================
+
 import (
 	"fmt"
 	"time"

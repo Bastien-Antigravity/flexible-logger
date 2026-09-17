@@ -1,5 +1,17 @@
 package profiles
 
+// =============================================================================
+// ESSENTIAL PROCESS: Integration tests validating all 8 logger profiles, mock TCP handshakes, and local notification delivery.
+//
+// DATA FLOW:
+//   1. Spawns loopback mock servers.
+//   2. Instantiates Minimal, Devel, Audit, Standard, and Notif profiles.
+//   3. Asserts non-blocking throughput, blocking audit semantics, and alert delivery.
+//
+// KEY PARAMETERS:
+//   - t: Testing harness.
+// =============================================================================
+
 import (
 	"net"
 	"strings"

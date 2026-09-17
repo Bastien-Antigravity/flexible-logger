@@ -1,5 +1,19 @@
 package serializers
 
+// =============================================================================
+// ESSENTIAL PROCESS: Binary serialization engine mapping LogEntry structures to Cap'n Proto LoggerMsg wire format.
+//
+// DATA FLOW:
+//   1. Ingests LogEntry model instance.
+//   2. Allocates single-segment Cap'n Proto message.
+//   3. Maps all 16 fields including severity enum to LoggerMsg schema.
+//   4. Marshals message to packed byte slice for transmission.
+//
+// KEY PARAMETERS:
+//   - CapnpSerializer: Serializer implementation.
+//   - mapLevel: Level enum converter.
+// =============================================================================
+
 import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 	logger_schema "github.com/Bastien-Antigravity/flexible-logger/src/schemas/capnp/logger"

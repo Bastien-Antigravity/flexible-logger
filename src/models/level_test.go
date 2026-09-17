@@ -1,5 +1,16 @@
 package models
 
+// =============================================================================
+// ESSENTIAL PROCESS: Unit tests for Log Level stringification and string parsing.
+//
+// DATA FLOW:
+//   1. Iterates through all 12 defined Level constants.
+//   2. Asserts bidirectional fidelity of String() and ParseLevel().
+//
+// KEY PARAMETERS:
+//   - t: Testing harness.
+// =============================================================================
+
 import "testing"
 
 func TestLevel_String(t *testing.T) {

@@ -1,5 +1,17 @@
 package models
 
+// =============================================================================
+// ESSENTIAL PROCESS: Ecosystem log severity level enumeration and parsing routines.
+//
+// DATA FLOW:
+//   1. Defines 12 log severity level constants from LevelDebug to LevelCritical.
+//   2. Provides Level.String() representation.
+//   3. Parses string tokens into canonical Level constants with fallback.
+//
+// KEY PARAMETERS:
+//   - Level: Byte-sized severity enumeration.
+// =============================================================================
+
 import "strings"
 
 // -----------------------------------------------------------------------------

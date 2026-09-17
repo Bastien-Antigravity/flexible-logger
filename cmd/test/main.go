@@ -1,5 +1,18 @@
 package main
 
+// =============================================================================
+// ESSENTIAL PROCESS: High-throughput stress test CLI measuring raw log dispatch performance.
+//
+// DATA FLOW:
+//   1. Spawns local mock servers for log and notification services.
+//   2. Initializes HighPerfLogger with asynchronous network sink.
+//   3. Emits 1,000,000 log entries and calculates logs/sec throughput.
+//
+// KEY PARAMETERS:
+//   - count: Total number of benchmark iterations (1,000,000).
+//   - prodLog: High-performance logger instance.
+// =============================================================================
+
 import (
 	"fmt"
 	"time"

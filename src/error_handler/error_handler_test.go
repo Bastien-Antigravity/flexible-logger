@@ -1,5 +1,18 @@
 package error_handler
 
+// =============================================================================
+// ESSENTIAL PROCESS: Unit tests for internal error reporting and fallback stderr logging mechanisms.
+//
+// DATA FLOW:
+//   1. Redirects and intercepts standard error stream.
+//   2. Invokes ReportInternalError with simulated infrastructure faults.
+//   3. Validates formatted fallback error message delivery.
+//
+// KEY PARAMETERS:
+//   - t: Testing context.
+//   - source: Component identifier where simulated error originated.
+// =============================================================================
+
 import (
 	"bytes"
 	"fmt"

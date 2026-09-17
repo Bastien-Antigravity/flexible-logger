@@ -1,5 +1,19 @@
 package profiles
 
+// =============================================================================
+// ESSENTIAL PROCESS: Fully asynchronous lock-free profile fanning out logs across async console, async file, and async network sinks.
+//
+// DATA FLOW:
+//   1. Wraps Console, File, and Network sinks in dedicated AsyncSink buffers.
+//   2. Combines into MultiSink utilizing atomic reference counting for fan-out.
+//   3. Guarantees that caller goroutines never block on underlying I/O.
+//
+// KEY PARAMETERS:
+//   - name: Microservice name.
+//   - config: Distributed configuration provider.
+//   - useLocalNotif: Notification routing flag.
+// =============================================================================
+
 import (
 	"fmt"
 	"os"
@@ -51,30 +65,31 @@ func NewNoLockLogger(name string, config *distributed_config.Config, useLocalNot
 		Port string `json:"port"`
 	}
 	var lsCap ServerCap
-	if err := config.GetCapability("log_server", &lsCap); err != nil || lsCap.IP == "" {
-		fmt.Fprintf(os.Stderr, "NoLockLogger: Logger configuration missing\n")
-		os.Exit(1)
-	}
-	ipPtr := &lsCap.IP
-	portPtr := &lsCap.Port
-
-	// Default public IP
+	var networkSink interfaces.Sink
 	publicIP := "127.0.0.1"
 
-	conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp-hello:"+name)
-	var networkSink interfaces.Sink
-	if err == nil {
-		ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
-		networkSink = sink.NewAsyncSink(ns, 8192)
+	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
+		ipPtr := &lsCap.IP
+		portPtr := &lsCap.Port
+
+		conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp-hello:"+name)
+		if err == nil {
+			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
+			networkSink = sink.NewAsyncSink(ns, 8192)
+		} else {
+			fmt.Fprintf(os.Stderr, "NoLockLogger: Failed to connect to log server: %v\n", err)
+		}
 	} else {
-		fmt.Fprintf(os.Stderr, "NoLockLogger: Failed to connect to log server: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "NoLockLogger: Logger configuration missing for log_server, running local-only\n")
 	}
 
 	// 4. MultiSink
-	// Writes to AsyncConsole, AsyncFile, AsyncNet.
-	// MultiSink handles Retain() for Fan-Out.
-	multi := sink.NewMultiSink(asyncConsole, asyncFile, networkSink)
+	var sinks []interfaces.Sink
+	sinks = append(sinks, asyncConsole, asyncFile)
+	if networkSink != nil {
+		sinks = append(sinks, networkSink)
+	}
+	multi := sink.NewMultiSink(sinks...)
 
 	// 5. Engine
 	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, false, 1.0).(*engine.LogEngine)
@@ -90,14 +105,9 @@ func NewNoLockLogger(name string, config *distributed_config.Config, useLocalNot
 	}
 
 	var nsCap ServerCap
-	if err := config.GetCapability("notif_server", &nsCap); err != nil || nsCap.IP == "" {
-		fmt.Fprintf(os.Stderr, "NoLockLogger: Notification configuration missing\n")
-		os.Exit(1)
+	if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
+		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP, name)
 	}
-	notifIpPtr := &nsCap.IP
-	notifPortPtr := &nsCap.Port
-
-	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP, name)
 
 	return logger
 }

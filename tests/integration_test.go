@@ -1,5 +1,17 @@
 package tests
 
+// =============================================================================
+// ESSENTIAL PROCESS: End-to-end integration test suite validating fleet logging, sampling integrity, and handshake protocol compliance.
+//
+// DATA FLOW:
+//   1. Launches loopback mock daemons for log and notification services.
+//   2. Instantiates Audit, Standard, and Fleet logger profiles.
+//   3. Asserts blocking semantics, caller metadata, and ecosystem handshake transmission.
+//
+// KEY PARAMETERS:
+//   - t: Testing context.
+// =============================================================================
+
 import (
 	"net"
 	"strings"

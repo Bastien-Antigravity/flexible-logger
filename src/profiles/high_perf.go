@@ -1,5 +1,19 @@
 package profiles
 
+// =============================================================================
+// ESSENTIAL PROCESS: High-performance logging profile designed for ultra-low latency via non-blocking asynchronous Cap'n Proto network streaming.
+//
+// DATA FLOW:
+//   1. Connects to central log-server using non-blocking connection mode.
+//   2. Wraps socket in 16,384-capacity AsyncSink with CapnpSerializer.
+//   3. Bypasses disk I/O entirely to deliver maximum throughput.
+//
+// KEY PARAMETERS:
+//   - name: Microservice name.
+//   - config: Distributed configuration provider.
+//   - useLocalNotif: Alert dispatching selector.
+// =============================================================================
+
 import (
 	"fmt"
 	"os"
@@ -33,25 +47,23 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 		Port string `json:"port"`
 	}
 	var lsCap ServerCap
-	if err := config.GetCapability("log_server", &lsCap); err != nil || lsCap.IP == "" {
-		fmt.Fprintf(os.Stderr, "HighPerfLogger: Logger configuration missing\n")
-		os.Exit(1)
-	}
-	ipPtr := &lsCap.IP
-	portPtr := &lsCap.Port
-
-	// Default public IP (as pointer to handle dynamic update requirement, though static here for now)
+	var networkSink interfaces.Sink
 	publicIP := "127.0.0.1"
 
-	// Use Connect with ModeNonBlocking
-	conn := nm.Connect(ipPtr, portPtr, &publicIP, "tcp-hello:"+name, conn_manager.ModeNonBlocking)
-	var networkSink interfaces.Sink
-	if conn != nil {
-		ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
-		networkSink = sink.NewAsyncSink(ns, 16384) // Larger buffer
-	} else {
-		fmt.Fprintf(os.Stderr, "HighPerfLogger: Failed to initialize connection manager for log server\n")
-		os.Exit(1)
+	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
+		ipPtr := &lsCap.IP
+		portPtr := &lsCap.Port
+
+		conn := nm.Connect(ipPtr, portPtr, &publicIP, "tcp-hello:"+name, conn_manager.ModeNonBlocking)
+		if conn != nil {
+			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
+			networkSink = sink.NewAsyncSink(ns, 16384) // Larger buffer
+		}
+	}
+
+	if networkSink == nil {
+		fmt.Fprintf(os.Stderr, "HighPerfLogger: log_server connection failed or config missing, falling back to console sink\n")
+		networkSink = sink.NewConsoleSink()
 	}
 
 	// 5. Engine
@@ -68,14 +80,9 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 	}
 
 	var nsCap ServerCap
-	if err := config.GetCapability("notif_server", &nsCap); err != nil || nsCap.IP == "" {
-		fmt.Fprintf(os.Stderr, "HighPerfLogger: Notification configuration missing\n")
-		os.Exit(1)
+	if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
+		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP, name)
 	}
-	notifIpPtr := &nsCap.IP
-	notifPortPtr := &nsCap.Port
-
-	logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP, name)
 
 	return logger
 }

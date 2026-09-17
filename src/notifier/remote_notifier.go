@@ -1,9 +1,24 @@
 package notifier
 
+// =============================================================================
+// ESSENTIAL PROCESS: Asynchronous Cap'n Proto notification dispatcher streaming alerts over SafeSocket TCP to notif-server.
+//
+// DATA FLOW:
+//   1. Queues NotifMessage instances into internal buffered channel.
+//   2. Background worker serializes message using Cap'n Proto NotifierMsg schema.
+//   3. Transmits binary frames over managed SafeSocket connection.
+//
+// KEY PARAMETERS:
+//   - notifChan: Internal channel buffering alert messages.
+//   - netManager: Connection manager handling exponential backoff reconnects.
+//   - connReady: Synchronization channel signaling connection initialization.
+// =============================================================================
+
 import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
@@ -26,6 +41,7 @@ type RemoteNotifier struct {
 	netManager *conn_manager.NetworkManager
 	conn       io.WriteCloser // stored reference for clean shutdown
 	connReady  chan struct{}  // signals that conn has been initialized
+	closeOnce  sync.Once
 }
 
 // -----------------------------------------------------------------------------
@@ -65,14 +81,32 @@ func (rn *RemoteNotifier) Notify(n *models.NotifMessage) error {
 // -----------------------------------------------------------------------------
 
 func (rn *RemoteNotifier) Close() error {
-	close(rn.notifChan)
-	// Wait for the connection to be initialized, then close it to break
-	// any ongoing reconnection loop in ManagedConnection.reconnect().
-	<-rn.connReady
-	if rn.conn != nil {
-		rn.conn.Close()
-	}
-	rn.wg.Wait()
+	rn.closeOnce.Do(func() {
+		close(rn.notifChan)
+		<-rn.connReady
+
+		// Allow worker to drain remaining queued notifications
+		drained := make(chan struct{})
+		go func() {
+			rn.wg.Wait()
+			close(drained)
+		}()
+
+		select {
+		case <-drained:
+			// Drained cleanly
+		case <-time.After(2 * time.Second):
+			// Timeout reached while draining; force close connection to break worker
+			if rn.conn != nil {
+				rn.conn.Close()
+			}
+			<-drained
+		}
+
+		if rn.conn != nil {
+			rn.conn.Close()
+		}
+	})
 	return nil
 }
 

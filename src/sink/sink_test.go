@@ -1,5 +1,16 @@
 package sink
 
+// =============================================================================
+// ESSENTIAL PROCESS: Unit tests for WriterSink, AsyncSink, ConsoleSink, and MultiSink reference counting and backpressure behavior.
+//
+// DATA FLOW:
+//   1. Executes concurrent writes against buffered and unbuffered sinks.
+//   2. Verifies buffer saturation drop behavior and reference count accounting.
+//
+// KEY PARAMETERS:
+//   - t: Testing harness.
+// =============================================================================
+
 import (
 	"bytes"
 	"sync"

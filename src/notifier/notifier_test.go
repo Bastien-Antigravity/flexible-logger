@@ -1,5 +1,16 @@
 package notifier
 
+// =============================================================================
+// ESSENTIAL PROCESS: Unit tests for LocalNotifier and RemoteNotifier under synchronous and asynchronous conditions.
+//
+// DATA FLOW:
+//   1. Tests local channel delivery and queue overflow handling.
+//   2. Validates RemoteNotifier background worker initialization and teardown.
+//
+// KEY PARAMETERS:
+//   - t: Testing harness.
+// =============================================================================
+
 import (
 	"testing"
 

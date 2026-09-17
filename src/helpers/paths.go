@@ -1,5 +1,19 @@
 package helpers
 
+// =============================================================================
+// ESSENTIAL PROCESS: Cross-platform log directory resolution and file path discovery.
+//
+// DATA FLOW:
+//   1. Traverses runtime caller stack to locate calling project root.
+//   2. Falls back to executable directory or current working directory.
+//   3. Ensures creation of 'logs/' directory with standard permissions.
+//   4. Returns canonical absolute or relative path to log file.
+//
+// KEY PARAMETERS:
+//   - name: Component or application name determining log filename.
+//   - baseDir: Resolved root directory anchor.
+// =============================================================================
+
 import (
 	"os"
 	"path/filepath"
@@ -39,6 +53,14 @@ func getCallerDir() string {
 }
 
 // -----------------------------------------------------------------------------
+
+// GetDefaultLogPath returns the default log path using the executable name.
+func GetDefaultLogPath() string {
+	return GetLogPath("")
+}
+
+// -----------------------------------------------------------------------------
+
 // GetLogPath returns the log file path based on the provided name.
 // If name is empty, it falls back to the executable name.
 func GetLogPath(name string) string {

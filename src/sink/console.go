@@ -1,5 +1,17 @@
 package sink
 
+// =============================================================================
+// ESSENTIAL PROCESS: Standard console output sink routing formatted text logs to os.Stderr.
+//
+// DATA FLOW:
+//   1. Wraps WriterSink targeting os.Stderr.
+//   2. Emits logs formatted with TextSerializer.
+//
+// KEY PARAMETERS:
+//   - ConsoleSink: Sink struct.
+//   - inner: Internal WriterSink instance.
+// =============================================================================
+
 import (
 	"os"
 

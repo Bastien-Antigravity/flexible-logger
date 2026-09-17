@@ -35,6 +35,9 @@ go.work
 go.work.sum
 __debug_bin
 *.test
+*.exe
+*.dll
+*.dylib
 
 # Python
 __pycache__/
@@ -76,6 +79,8 @@ temp/
 
 # --- Standard Ecosystem Protections ---
 *.log
+logs/
+**/logs/
 *.pyc
 .venv/
 .pytest_cache/

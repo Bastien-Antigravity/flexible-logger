@@ -1,5 +1,19 @@
 package main
 
+// =============================================================================
+// ESSENTIAL PROCESS: Integration and benchmark tests for TCP log-server connectivity over SafeSocket.
+//
+// DATA FLOW:
+//   1. Spawns loopback mock server absorbing hello handshakes.
+//   2. Configures distributed_config capabilities for log_server.
+//   3. Dispatches logs via NoLock and HighPerf logger profiles.
+//   4. Measures delivery throughput and connection resilience.
+//
+// KEY PARAMETERS:
+//   - logIp, logPort: Dynamic loopback mock listener coordinates.
+//   - distConf: Distributed configuration instance.
+// =============================================================================
+
 import (
 	"testing"
 	"time"

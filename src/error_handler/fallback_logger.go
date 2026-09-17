@@ -1,5 +1,20 @@
 package error_handler
 
+// =============================================================================
+// ESSENTIAL PROCESS: Isolated diagnostic fallback logger preventing infinite recursion when logger infrastructure fails.
+//
+// DATA FLOW:
+//   1. Catches infrastructure errors from sinks, buffers, or network managers.
+//   2. Formats internal error using TextSerializer into a LogEntry.
+//   3. Writes emergency diagnostic message directly to os.Stderr.
+//
+// KEY PARAMETERS:
+//   - loggerName: Subsystem or logger name reporting the failure.
+//   - source: Internal process or method where error occurred.
+//   - err: Root cause error instance.
+//   - originalMsg: Original log message payload that failed delivery.
+// =============================================================================
+
 import (
 	"fmt"
 	"os"

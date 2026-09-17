@@ -1,5 +1,19 @@
 package test_utils
 
+// =============================================================================
+// ESSENTIAL PROCESS: Test utility providing automated mock TCP servers for testing SafeSocket handshakes and Cap'n Proto packet streams.
+//
+// DATA FLOW:
+//   1. Binds to dynamic loopback port.
+//   2. Accepts incoming TCP connections in background goroutine.
+//   3. Consumes initial handshake frame and closes gracefully.
+//
+// KEY PARAMETERS:
+//   - name: Mock server identifier.
+//   - ln: Network listener.
+//   - stop: Server termination callback.
+// =============================================================================
+
 import (
 	"fmt"
 	"io"

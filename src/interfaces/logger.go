@@ -1,5 +1,16 @@
 package interfaces
 
+// =============================================================================
+// ESSENTIAL PROCESS: Ecosystem ILogger interface definition establishing standard logging methods across all severity levels.
+//
+// DATA FLOW:
+//   1. Defines contract for all 12 log severity methods.
+//   2. Specifies level adjustment and lifecycle closure contracts.
+//
+// KEY PARAMETERS:
+//   - Logger: Unified logging contract for the Bastien-Antigravity ecosystem.
+// =============================================================================
+
 import "github.com/Bastien-Antigravity/flexible-logger/src/models"
 
 // -----------------------------------------------------------------------------
@@ -56,6 +67,10 @@ type Logger interface {
 	// -------------------------------------------------------------------------
 	// Log logs a message at a specific level.
 	Log(level models.Level, format string, args ...any)
+
+	// -------------------------------------------------------------------------
+	// LogWithCaller logs a message with explicit caller stack metadata.
+	LogWithCaller(level models.Level, msg, file, line, function, module string)
 
 	// -------------------------------------------------------------------------
 	// SetLevel sets the current log level.
