@@ -46,7 +46,7 @@ func NewCloudLogger(name string, config *distributed_config.Config, useLocalNoti
 	// 2. File (Async JSON)
 	logPath := helpers.GetLogPath(name)
 	var fileSink interfaces.Sink
-	if f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+	if f, err := sink.NewRollingFileWriter(logPath, 10*1024*1024, 5); err == nil {
 		jsonFile := sink.NewWriterSink(f, serializers.NewJSONSerializer())
 		fileSink = sink.NewAsyncSink(jsonFile, 4096)
 	} else {

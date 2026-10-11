@@ -45,7 +45,7 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 	// 2. File (Sync)
 	logPath := helpers.GetLogPath(name)
 	var fileSink interfaces.Sink
-	if f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+	if f, err := sink.NewRollingFileWriter(logPath, 10*1024*1024, 5); err == nil {
 		fileSink = sink.NewWriterSink(f, serializers.NewTextSerializer())
 	} else {
 		fmt.Fprintf(os.Stderr, "StandardLogger: Failed to open log file %s: %v, falling back to console\n", logPath, err)

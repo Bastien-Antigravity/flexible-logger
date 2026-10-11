@@ -38,7 +38,7 @@ func NewDevelLogger(name string, useLocalNotif bool) interfaces.Logger {
 	// 2. File Sink
 	logPath := helpers.GetLogPath(name)
 	var fileSink interfaces.Sink
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := sink.NewRollingFileWriter(logPath, 10*1024*1024, 5)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "DevelLogger: Failed to open log file %s: %v, falling back to console\n", logPath, err)
 		fileSink = consoleSink
