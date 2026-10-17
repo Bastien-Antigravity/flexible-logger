@@ -1,7 +1,7 @@
 package interfaces
 
 // =============================================================================
-// ESSENTIAL PROCESS: Ecosystem ILogger interface definition establishing standard logging methods across all severity levels.
+// ESSENTIAL PROCESS: Ecosystem Logger interface definition establishing standard logging methods across all severity levels.
 //
 // DATA FLOW:
 //   1. Defines contract for all 12 log severity methods.
