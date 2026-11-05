@@ -24,6 +24,7 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
@@ -50,24 +51,40 @@ type LogEngine struct {
 	SamplingRate        float64
 	AlwaysCollectCaller bool // (Redundant if we use logic below, let's keep it simple)
 
-	closeOnce sync.Once
+	closeOnce        sync.Once
+	atomicLevel      atomic.Uint32
+	atomicCallerSkip atomic.Int32
+	callerSkipSet    atomic.Bool
 }
 
 // -----------------------------------------------------------------------------
 // SetLevel sets the current log level.
 func (l *LogEngine) SetLevel(level models.Level) {
+	l.atomicLevel.Store(uint32(level) + 1)
 	l.Level = level
 }
 
 // GetLevel returns the current log level.
 func (l *LogEngine) GetLevel() models.Level {
+	if val := l.atomicLevel.Load(); val != 0 {
+		return models.Level(val - 1)
+	}
 	return l.Level
 }
 
 // -----------------------------------------------------------------------------
 // SetCallerSkip sets the number of stack frames to skip.
 func (l *LogEngine) SetCallerSkip(skip int) {
+	l.atomicCallerSkip.Store(int32(skip))
+	l.callerSkipSet.Store(true)
 	l.CallerSkip = skip
+}
+
+func (l *LogEngine) getCallerSkip() int {
+	if l.callerSkipSet.Load() {
+		return int(l.atomicCallerSkip.Load())
+	}
+	return l.CallerSkip
 }
 
 // -----------------------------------------------------------------------------
@@ -106,7 +123,7 @@ func (l *LogEngine) getEntry(level models.Level, msg string) *models.LogEntry {
 	if l.CollectCallerInfo || level >= models.LevelError {
 		// Default skip is 3: getEntry -> Log -> Info/Debug/etc. -> User Code
 		// Add CallerSkip to handle wrapping libraries
-		pc, file, line, ok := runtime.Caller(3 + l.CallerSkip)
+		pc, file, line, ok := runtime.Caller(3 + l.getCallerSkip())
 		if ok {
 			e.Filename = filepath.Base(file) // Recommendation 1A: Short Filename
 			e.LineNumber = strconv.Itoa(line)
@@ -126,7 +143,7 @@ func (l *LogEngine) getEntry(level models.Level, msg string) *models.LogEntry {
 
 // -----------------------------------------------------------------------------
 func (l *LogEngine) Log(level models.Level, format string, args ...any) {
-	if level < l.Level {
+	if level < l.GetLevel() {
 		return
 	}
 
@@ -159,7 +176,7 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 
 // -----------------------------------------------------------------------------
 func (l *LogEngine) LogWithCaller(level models.Level, msg, file, line, function, module string) {
-	if level < l.Level {
+	if level < l.GetLevel() {
 		return
 	}
 

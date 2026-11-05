@@ -32,6 +32,7 @@ type AsyncSink struct {
 	wg         sync.WaitGroup
 	bufferSize int
 	closed     atomic.Bool
+	mu         sync.RWMutex
 	OnError    func(error, *models.LogEntry) // Optional error handler
 }
 
@@ -79,6 +80,9 @@ func (s *AsyncSink) worker() {
 // -----------------------------------------------------------------------------
 
 func (s *AsyncSink) Write(entry *models.LogEntry) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	if s.closed.Load() {
 		entry.Release()
 		return fmt.Errorf("sink closed")
@@ -96,10 +100,14 @@ func (s *AsyncSink) Write(entry *models.LogEntry) error {
 // -----------------------------------------------------------------------------
 
 func (s *AsyncSink) Close() error {
+	s.mu.Lock()
 	if s.closed.Swap(true) {
+		s.mu.Unlock()
 		return nil // Already closed
 	}
 	close(s.buffer)
+	s.mu.Unlock()
+
 	s.wg.Wait()
 	return s.next.Close()
 }

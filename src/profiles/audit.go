@@ -39,29 +39,28 @@ import (
 func NewAuditLogger(name string, config *distributed_config.Config, useLocalNotif bool) interfaces.Logger {
 	// 1. Console (Sync)
 	consoleSink := sink.NewConsoleSink()
+	sinks := []interfaces.Sink{consoleSink}
 
 	// 2. File (Sync)
 	logPath := helpers.GetLogPath(name)
-	var fileSink interfaces.Sink
 	if f, err := sink.NewRollingFileWriter(logPath, 10*1024*1024, 5); err == nil {
-		fileSink = sink.NewWriterSink(f, serializers.NewTextSerializer())
-	} else {
-		fileSink = consoleSink
+		fileSink := sink.NewWriterSink(f, serializers.NewTextSerializer())
+		sinks = append(sinks, fileSink)
 	}
 
 	// 3. Network (Sync / Blocking)
-	nm := conn_manager.NewCriticalStrategy(nil)
-	nm.OnError = func(attempt int, err error, source string, msg string) {
-		error_handler.ReportInternalError(name, source, err, msg)
-	}
-
 	type ServerCap struct {
 		IP   string `json:"ip"`
 		Port string `json:"port"`
 	}
+	publicIP := "127.0.0.1"
+
 	var lsCap ServerCap
-	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
-		publicIP := "127.0.0.1"
+	if config != nil && config.GetCapability("log_server", &lsCap) == nil && lsCap.IP != "" {
+		nm := conn_manager.NewCriticalStrategy(nil)
+		nm.OnError = func(attempt int, err error, source string, msg string) {
+			error_handler.ReportInternalError(name, source, err, msg)
+		}
 
 		// Use Connect with ModeIndefinite for Audit trail
 		conn := nm.Connect(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name, conn_manager.ModeIndefinite)
@@ -69,34 +68,31 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 		// IMPORTANT: Wrap directly in WriterSink WITHOUT an AsyncSink wrapper.
 		// This makes the log.Info() call WAIT for the socket write to complete.
 		networkSink := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
-
-		// Combine
-		multi := sink.NewMultiSink(consoleSink, fileSink, networkSink)
-
-		// 4. Engine
-		// Audit logs NEVER use sampling (1.0 rate)
-		logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0).(*engine.LogEngine)
-
-		// 5. Notifier
-		if useLocalNotif {
-			localNotif := notifier.NewLocalNotifier()
-			logger.Notifier = localNotif
-			return &NotifLoggerWrapper{
-				Logger:        logger,
-				localNotifier: localNotif,
-			}
-		}
-
-		// Async is fine for notifs even in audit mode, as logs are the primary trail
-		var nsCap ServerCap
-		if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
-			logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP, name)
-		}
-
-		return logger
+		sinks = append(sinks, networkSink)
 	}
 
-	// Fallback
-	multi := sink.NewMultiSink(consoleSink, fileSink)
-	return factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0)
+	// Combine
+	multi := sink.NewMultiSink(sinks...)
+
+	// 4. Engine
+	// Audit logs NEVER use sampling (1.0 rate)
+	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0).(*engine.LogEngine)
+
+	// 5. Notifier (Initialized independently of log_server)
+	if useLocalNotif {
+		localNotif := notifier.NewLocalNotifier()
+		logger.Notifier = localNotif
+		return &NotifLoggerWrapper{
+			Logger:        logger,
+			localNotifier: localNotif,
+		}
+	}
+
+	// Async is fine for notifs even in audit mode, as logs are the primary trail
+	var nsCap ServerCap
+	if config != nil && config.GetCapability("notif_server", &nsCap) == nil && nsCap.IP != "" {
+		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP, name)
+	}
+
+	return logger
 }

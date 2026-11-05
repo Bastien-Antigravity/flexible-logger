@@ -90,6 +90,17 @@ func (w *RollingFileWriter) Write(p []byte) (int, error) {
 		}
 	}
 
+	if w.file == nil {
+		f, err := os.OpenFile(w.filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+		if err != nil {
+			return 0, fmt.Errorf("reopening log file failed: %w", err)
+		}
+		w.file = f
+		if fi, err := f.Stat(); err == nil {
+			w.curSize = fi.Size()
+		}
+	}
+
 	n, err := w.file.Write(p)
 	w.curSize += int64(n)
 	return n, err

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
@@ -40,8 +41,11 @@ type RemoteNotifier struct {
 	wg         sync.WaitGroup
 	netManager *conn_manager.NetworkManager
 	conn       io.WriteCloser // stored reference for clean shutdown
+	connMu     sync.Mutex     // guards conn reference
 	connReady  chan struct{}  // signals that conn has been initialized
 	closeOnce  sync.Once
+	mu         sync.RWMutex
+	closed     atomic.Bool
 }
 
 // -----------------------------------------------------------------------------
@@ -70,6 +74,13 @@ func NewRemoteNotifier(ip, port, publicIP *string, appName string) *RemoteNotifi
 // -----------------------------------------------------------------------------
 
 func (rn *RemoteNotifier) Notify(n *models.NotifMessage) error {
+	rn.mu.RLock()
+	defer rn.mu.RUnlock()
+
+	if rn.closed.Load() {
+		return fmt.Errorf("notifier closed")
+	}
+
 	select {
 	case rn.notifChan <- n:
 		return nil
@@ -82,7 +93,11 @@ func (rn *RemoteNotifier) Notify(n *models.NotifMessage) error {
 
 func (rn *RemoteNotifier) Close() error {
 	rn.closeOnce.Do(func() {
+		rn.mu.Lock()
+		rn.closed.Store(true)
 		close(rn.notifChan)
+		rn.mu.Unlock()
+
 		<-rn.connReady
 
 		// Allow worker to drain remaining queued notifications
@@ -97,15 +112,21 @@ func (rn *RemoteNotifier) Close() error {
 			// Drained cleanly
 		case <-time.After(2 * time.Second):
 			// Timeout reached while draining; force close connection to break worker
+			rn.connMu.Lock()
 			if rn.conn != nil {
-				rn.conn.Close()
+				_ = rn.conn.Close()
+				rn.conn = nil
 			}
+			rn.connMu.Unlock()
 			<-drained
 		}
 
+		rn.connMu.Lock()
 		if rn.conn != nil {
-			rn.conn.Close()
+			_ = rn.conn.Close()
+			rn.conn = nil
 		}
+		rn.connMu.Unlock()
 	})
 	return nil
 }
@@ -119,14 +140,23 @@ func (rn *RemoteNotifier) worker() {
 
 	// Store reference and signal readiness for Close() to use.
 	// This must happen even if conn is nil, to prevent Close() from blocking on <-connReady.
+	rn.connMu.Lock()
 	rn.conn = conn
+	rn.connMu.Unlock()
 	close(rn.connReady)
 
 	if conn == nil {
 		error_handler.ReportInternalError("RemoteNotifier", "worker.connect", fmt.Errorf("failed to initialize connection"), "")
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		rn.connMu.Lock()
+		if rn.conn != nil {
+			_ = rn.conn.Close()
+			rn.conn = nil
+		}
+		rn.connMu.Unlock()
+	}()
 
 	for n := range rn.notifChan {
 		data := rn.serialize(n)
