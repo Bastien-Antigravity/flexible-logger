@@ -86,7 +86,12 @@ func GetLogPath(name string) string {
 		}
 	}
 
-	logDir := filepath.Join(baseDir, "logs")
+	var logDir string
+	if envLogDir := os.Getenv("LOG_DIR"); envLogDir != "" {
+		logDir = envLogDir
+	} else {
+		logDir = filepath.Join(baseDir, "logs")
+	}
 
 	// Ensure log directory exists
 	_ = os.MkdirAll(logDir, 0755)
