@@ -61,6 +61,27 @@ func GetDefaultLogPath() string {
 
 // -----------------------------------------------------------------------------
 
+func isDockerContainer() bool {
+	return os.Getenv("DOCKER_ENV") == "true"
+}
+
+func sanitizeServiceSegment(raw string) string {
+	cleaned := strings.ReplaceAll(raw, "/", "_")
+	return strings.ReplaceAll(cleaned, "\\", "_")
+}
+
+func resolveLogDir(name, envLogDir string, isDocker bool, baseDir string) string {
+	if envLogDir != "" {
+		return envLogDir
+	}
+	if isDocker && name != "" {
+		return filepath.Join("/var/log/fleet", sanitizeServiceSegment(name))
+	}
+	return filepath.Join(baseDir, "logs")
+}
+
+// -----------------------------------------------------------------------------
+
 // GetLogPath returns the log file path based on the provided name.
 // If name is empty, it falls back to the executable name.
 func GetLogPath(name string) string {
@@ -86,32 +107,24 @@ func GetLogPath(name string) string {
 		}
 	}
 
-	var logDir string
-	if envLogDir := os.Getenv("LOG_DIR"); envLogDir != "" {
-		logDir = envLogDir
-	} else {
-		logDir = filepath.Join(baseDir, "logs")
+	effectiveName := name
+	if effectiveName == "" {
+		if err != nil {
+			effectiveName = "application"
+		} else {
+			exeName := filepath.Base(exePath)
+			if ext := filepath.Ext(exeName); ext != "" {
+				exeName = strings.TrimSuffix(exeName, ext)
+			}
+			effectiveName = exeName
+		}
 	}
+	safeName := sanitizeServiceSegment(effectiveName)
+
+	logDir := resolveLogDir(safeName, os.Getenv("LOG_DIR"), isDockerContainer(), baseDir)
 
 	// Ensure log directory exists
 	_ = os.MkdirAll(logDir, 0755)
 
-	if name != "" {
-		// Clean the name to be safe for filenames
-		name = strings.ReplaceAll(name, "/", "_")
-		name = strings.ReplaceAll(name, "\\", "_")
-		return filepath.Join(logDir, name+".log")
-	}
-
-	if err != nil {
-		return filepath.Join(logDir, "application.log")
-	}
-
-	exeName := filepath.Base(exePath)
-	ext := filepath.Ext(exeName)
-	if ext != "" {
-		exeName = strings.TrimSuffix(exeName, ext)
-	}
-
-	return filepath.Join(logDir, exeName+".log")
+	return filepath.Join(logDir, safeName+".log")
 }

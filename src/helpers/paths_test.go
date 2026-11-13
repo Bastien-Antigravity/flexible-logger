@@ -42,3 +42,15 @@ func TestGetDefaultLogPath(t *testing.T) {
 		t.Errorf("Expected path %s to contain executable name %s", path, exeName)
 	}
 }
+
+func TestResolveLogDir(t *testing.T) {
+	if got := resolveLogDir("rag-engine", "/custom/dir", true, "/app"); got != "/custom/dir" {
+		t.Errorf("expected explicit LOG_DIR to take precedence, got %s", got)
+	}
+	if got := resolveLogDir("rag-engine", "", true, "/app"); got != filepath.Join("/var/log/fleet", "rag-engine") {
+		t.Errorf("expected Docker default /var/log/fleet/rag-engine, got %s", got)
+	}
+	if got := resolveLogDir("rag-engine", "", false, "/app"); got != filepath.Join("/app", "logs") {
+		t.Errorf("expected native default /app/logs, got %s", got)
+	}
+}
