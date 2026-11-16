@@ -66,13 +66,12 @@ func NewNoLockLogger(name string, config *distributed_config.Config, useLocalNot
 	}
 	var lsCap ServerCap
 	var networkSink interfaces.Sink
-	publicIP := "127.0.0.1"
 
 	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
 		ipPtr := &lsCap.IP
 		portPtr := &lsCap.Port
 
-		conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp-hello:"+name)
+		conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &config.Common.PublicIP, "tcp-hello:"+name)
 		if err == nil {
 			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
 			networkSink = sink.NewAsyncSink(ns, 8192)
@@ -106,7 +105,7 @@ func NewNoLockLogger(name string, config *distributed_config.Config, useLocalNot
 
 	var nsCap ServerCap
 	if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
-		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP, name)
+		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &config.Common.PublicIP, name)
 	}
 
 	return logger

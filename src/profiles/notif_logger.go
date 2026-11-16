@@ -71,7 +71,7 @@ func NewNotifLogger(name string, config *distributed_config.Config, useLocalNoti
 	asyncFile := sink.NewAsyncSink(fileSink, 4096)
 
 	// 3. Network (Async)
-	nm := conn_manager.NewNetworkManager(-1, 200, 5000, 2000, 2.0, 0.1)
+	nm := conn_manager.NewNetworkManagerWithPolicy(-1, 200, 5000, 2000, 2.0, 0.1)
 
 	type ServerCap struct {
 		IP   string `json:"ip"`
@@ -79,13 +79,12 @@ func NewNotifLogger(name string, config *distributed_config.Config, useLocalNoti
 	}
 	var lsCap ServerCap
 	var networkSink interfaces.Sink
-	publicIP := "127.0.0.1"
 
 	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
 		ipPtr := &lsCap.IP
 		portPtr := &lsCap.Port
 
-		conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &publicIP, "tcp-hello:"+name)
+		conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &config.Common.PublicIP, "tcp-hello:"+name)
 		if err == nil {
 			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
 			networkSink = sink.NewAsyncSink(ns, 8192)

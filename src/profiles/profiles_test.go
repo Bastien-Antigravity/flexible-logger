@@ -130,6 +130,7 @@ func TestNotifLogger_LocalQueue(t *testing.T) {
 	// 1. Setup Mock Config with Capability
 	// Using the core struct directly to avoid complex strategy loading in tests
 	configData := &core.Config{
+		Common: core.CommonConfig{PublicIP: ip},
 		Capabilities: map[string]interface{}{
 			"log_server": map[string]interface{}{
 				"ip":   ip,
@@ -219,6 +220,7 @@ func TestProfile_AppNamePropagation(t *testing.T) {
 	}()
 
 	configData := &core.Config{
+		Common: core.CommonConfig{PublicIP: ip},
 		Capabilities: map[string]interface{}{
 			"log_server": map[string]interface{}{
 				"ip":   ip,

@@ -53,7 +53,6 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 		IP   string `json:"ip"`
 		Port string `json:"port"`
 	}
-	publicIP := "127.0.0.1"
 
 	var lsCap ServerCap
 	if config != nil && config.GetCapability("log_server", &lsCap) == nil && lsCap.IP != "" {
@@ -63,7 +62,7 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 		}
 
 		// Use Connect with ModeIndefinite for Audit trail
-		conn := nm.Connect(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name, conn_manager.ModeIndefinite)
+		conn := nm.Connect(&lsCap.IP, &lsCap.Port, &config.Common.PublicIP, "tcp-hello:"+name, conn_manager.ModeIndefinite)
 
 		// IMPORTANT: Wrap directly in WriterSink WITHOUT an AsyncSink wrapper.
 		// This makes the log.Info() call WAIT for the socket write to complete.
@@ -91,7 +90,7 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 	// Async is fine for notifs even in audit mode, as logs are the primary trail
 	var nsCap ServerCap
 	if config != nil && config.GetCapability("notif_server", &nsCap) == nil && nsCap.IP != "" {
-		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &publicIP, name)
+		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &config.Common.PublicIP, name)
 	}
 
 	return logger

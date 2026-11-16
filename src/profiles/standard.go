@@ -54,7 +54,6 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 
 	// 3. Network (Async)
 	var networkSink interfaces.Sink
-	publicIP := "127.0.0.1"
 
 	type ServerCap struct {
 		IP   string `json:"ip"`
@@ -66,7 +65,7 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 		nm.OnError = func(attempt int, err error, source string, msg string) {
 			error_handler.ReportInternalError(name, source, err, msg)
 		}
-		conn := nm.Connect(&lsCap.IP, &lsCap.Port, &publicIP, "tcp-hello:"+name, conn_manager.ModeIndefinite)
+		conn := nm.Connect(&lsCap.IP, &lsCap.Port, &config.Common.PublicIP, "tcp-hello:"+name, conn_manager.ModeIndefinite)
 		if conn != nil {
 			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
 			networkSink = sink.NewAsyncSink(ns, 4096)
@@ -100,7 +99,7 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 	if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
 		notifIpPtr := &nsCap.IP
 		notifPortPtr := &nsCap.Port
-		logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &publicIP, name)
+		logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &config.Common.PublicIP, name)
 	}
 
 	return logger
