@@ -1,4 +1,5 @@
-VERSION := $(shell cat VERSION.txt 2>/dev/null || echo "0.0.1")
+VERSION := $(strip $(shell cat VERSION.txt))
+$(if $(VERSION),,$(error VERSION.txt is missing or empty))
 
 .PHONY: all build test version clean
 
