@@ -1,12 +1,17 @@
 VERSION := $(strip $(shell cat VERSION.txt))
 $(if $(VERSION),,$(error VERSION.txt is missing or empty))
 
-.PHONY: all build test version clean
+.PHONY: all build test verify-standalone version clean
 
 all: build
 
 version:
 	@echo $(VERSION)
+
+verify-standalone:
+	@echo "Verifying standalone Go build & tests (GOWORK=off)..."
+	GOWORK=off go build ./...
+	GOWORK=off go test ./...
 
 build:
 	@echo "Building repository (version $(VERSION))..."
