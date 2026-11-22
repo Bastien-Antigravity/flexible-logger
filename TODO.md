@@ -13,13 +13,14 @@ tags:
 # TODO: flexible-logger
 
 ## 🏗️ Architecture & Refactoring
-- [ ] **Runtime Caller Skip Parameterization**: Currently, `LogEngine.getEntry()` uses a base skip offset of `3 + l.CallerSkip` (`runtime.Caller(3 + l.CallerSkip)`). This offset is currently calibrated for the wrapping facade in `universal-logger` (and helper methods like `Info`/`Error`). However, when `logger.Log(level, format, ...)` is called directly, the stack frame is 1 level shallower. Future refactoring should pass an explicit frame offset parameter rather than relying on a fixed base level, ensuring exact caller resolution whether called directly or via multi-layer library facades.
 - [ ] Standardize the Cap'n Proto schema for cross-service logging.
 
 ## 🧪 Testing & CI/CD
 - [ ] Add benchmarks for `sync.Pool` performance under high load.
 
 ## ✅ Completed
+- [x] **Unified Caller Stack Depth (`Log` vs. Helper Parity)**: Unified `LogEngine.Log()` and all severity helper methods (`Debug`, `Info`, `Warning`, `Error`, `Critical`, etc.) through `logInternal()` so `runtime.Caller(3 + l.getCallerSkip())` resolves identical caller `Filename` and `FunctionName` attribution regardless of entry point.
+- [x] **Observable Async Drop Counter (`AsyncSink.DroppedCount()`)**: Added lock-free `droppedCount atomic.Uint64` counter and `DroppedCount() uint64` accessor on `AsyncSink` incremented whenever buffer saturation drops an entry.
 - [x] **v0.0.1 Reliability Patch**:
     - Fixed `mapLevel` data loss in Cap'n Proto serializer (now supports all 12 levels).
     - Fixed memory leak in `MultiSink` with zero sinks (FEAT-004).

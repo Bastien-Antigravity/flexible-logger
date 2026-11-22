@@ -19,7 +19,7 @@ tags:
 
 A high-performance, zero-allocation, asynchronous logging library for Go, designed for distributed systems. 
 
-**v0.0.1 (Initial Release)**: Features hardened memory management, full Cap'n Proto level parity, and verified concurrency safety.
+**v0.0.1 (Initial Release)**: Features hardened memory management, full Cap'n Proto level parity, unified caller stack depth attribution across `Log()` and severity helpers (`logInternal`), observable async buffer drop accounting (`AsyncSink.DroppedCount()`), and verified concurrency safety.
 
 ## 📖 Documentation Directory Map
 

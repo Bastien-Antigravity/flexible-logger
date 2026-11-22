@@ -145,30 +145,77 @@ func TestMultiSink_Write(t *testing.T) {
 	}
 }
 
-func TestAsyncSink_BufferFull_DropsLog(t *testing.T) {
-	mockSink := &MockSink{}
-	// Small buffer
-	asyncSink := NewAsyncSink(mockSink, 1)
+type blockingMockSink struct {
+	unblock chan struct{}
+	started chan struct{}
+	once    sync.Once
+}
 
-	// Fill buffer and worker's current processing
+func (b *blockingMockSink) Write(entry *models.LogEntry) error {
+	b.once.Do(func() {
+		close(b.started)
+	})
+	<-b.unblock
+	if entry != nil {
+		entry.Release()
+	}
+	return nil
+}
+
+func (b *blockingMockSink) Close() error {
+	return nil
+}
+
+func TestAsyncSink_BufferFull_DropsLog(t *testing.T) {
+	blocker := &blockingMockSink{
+		unblock: make(chan struct{}),
+		started: make(chan struct{}),
+	}
+	// Buffer capacity = 1
+	asyncSink := NewAsyncSink(blocker, 1)
+	defer func() {
+		close(blocker.unblock)
+		_ = asyncSink.Close()
+	}()
+
+	if asyncSink.DroppedCount() != 0 {
+		t.Fatalf("Expected initial DroppedCount() == 0, got %d", asyncSink.DroppedCount())
+	}
+
+	// 1. Entry 1 is picked up by the worker goroutine and blocks on blocker.unblock
 	e1 := models.EntryPool.Get().(*models.LogEntry)
 	e1.Reset()
 	e1.Message = "Msg 1"
-	_ = asyncSink.Write(e1)
+	if err := asyncSink.Write(e1); err != nil {
+		t.Fatalf("Expected Msg 1 to be accepted, got %v", err)
+	}
+	<-blocker.started
 
+	// 2. Entry 2 fills the buffered channel (capacity 1)
 	e2 := models.EntryPool.Get().(*models.LogEntry)
 	e2.Reset()
 	e2.Message = "Msg 2"
-	_ = asyncSink.Write(e2)
+	if err := asyncSink.Write(e2); err != nil {
+		t.Fatalf("Expected Msg 2 to fill buffer, got %v", err)
+	}
 
-	// Third one should be dropped
+	// 3. Entry 3 & Entry 4 overflow the saturated buffer and must increment DroppedCount()
 	e3 := models.EntryPool.Get().(*models.LogEntry)
 	e3.Reset()
 	e3.Message = "Msg 3"
-	err := asyncSink.Write(e3)
+	if err := asyncSink.Write(e3); err == nil {
+		t.Error("Expected error when buffer is full on Msg 3, got nil")
+	}
 
-	if err == nil {
-		t.Error("Expected error when buffer is full, got nil")
+	e4 := models.EntryPool.Get().(*models.LogEntry)
+	e4.Reset()
+	e4.Message = "Msg 4"
+	if err := asyncSink.Write(e4); err == nil {
+		t.Error("Expected error when buffer is full on Msg 4, got nil")
+	}
+
+	if got := asyncSink.DroppedCount(); got != 2 {
+		t.Errorf("Expected DroppedCount() == 2 after 2 dropped entries, got %d", got)
 	}
 }
 

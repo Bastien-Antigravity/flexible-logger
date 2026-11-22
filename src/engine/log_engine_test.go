@@ -257,6 +257,41 @@ func TestLogEngine_ErrorCollectsCallerEvenWhenDisabled(t *testing.T) {
 	}
 }
 
+func emitLogAndHelperFromSameFunction(engine *LogEngine) (directEntry models.LogEntry, helperEntry models.LogEntry) {
+	mockSink := engine.Sink.(*MockSink)
+	engine.Log(models.LevelError, "Direct Log() call")
+	directEntry = *mockSink.GetLastEntry()
+
+	engine.Error("Helper Error() call")
+	helperEntry = *mockSink.GetLastEntry()
+	return directEntry, helperEntry
+}
+
+func TestLogEngine_DirectLogVsHelper_IdenticalCallerAttribution(t *testing.T) {
+	mockSink := &MockSink{}
+	engine := &LogEngine{
+		Sink:              mockSink,
+		Level:             models.LevelDebug,
+		CollectCallerInfo: true,
+		SamplingRate:      1.0,
+	}
+
+	directEntry, helperEntry := emitLogAndHelperFromSameFunction(engine)
+
+	if directEntry.Filename != "log_engine_test.go" {
+		t.Errorf("Expected direct Log() Filename 'log_engine_test.go', got %q", directEntry.Filename)
+	}
+	if directEntry.Filename != helperEntry.Filename {
+		t.Errorf("Filename mismatch between direct Log() (%q) and helper Error() (%q)", directEntry.Filename, helperEntry.Filename)
+	}
+	if directEntry.FunctionName != helperEntry.FunctionName {
+		t.Errorf("FunctionName mismatch between direct Log() (%q) and helper Error() (%q)", directEntry.FunctionName, helperEntry.FunctionName)
+	}
+	if directEntry.FunctionName != "engine.emitLogAndHelperFromSameFunction" {
+		t.Errorf("Expected caller FunctionName 'engine.emitLogAndHelperFromSameFunction', got %q", directEntry.FunctionName)
+	}
+}
+
 func TestLogEngine_ConcurrentStress(t *testing.T) {
 	mockSink := &MockSink{}
 	engine := &LogEngine{

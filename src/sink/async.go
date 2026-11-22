@@ -1,18 +1,21 @@
-package sink
-
-// =============================================================================
-// ESSENTIAL PROCESS: Asynchronous channel-buffered sink decoupling caller execution from underlying I/O latency.
+// -----------------------------------------------------------------------------
+// ESSENTIAL PROCESS:
+// Asynchronous channel-buffered sink decoupling caller execution from
+// underlying I/O latency.
 //
 // DATA FLOW:
-//   1. Receives LogEntry in non-blocking select buffer.
-//   2. Background worker goroutine pops entries and retains references.
-//   3. Delegates to downstream Sink and releases reference after write.
+// 1. Receives LogEntry in non-blocking select buffer.
+// 2. Background worker goroutine pops entries and retains references.
+// 3. Delegates to downstream Sink and releases reference after write.
 //
 // KEY PARAMETERS:
-//   - buffer: Buffered channel queue.
-//   - next: Downstream target sink.
-//   - OnError: Optional callback for write failures.
-// =============================================================================
+// - buffer: Buffered channel queue.
+// - next: Downstream target sink.
+// - droppedCount: Atomic counter tracking entries dropped on buffer saturation.
+// - OnError: Optional callback for write failures.
+// -----------------------------------------------------------------------------
+
+package sink
 
 import (
 	"fmt"
@@ -27,13 +30,14 @@ import (
 // -----------------------------------------------------------------------------
 // AsyncSink wraps another sink and writes asynchronously using a buffered channel.
 type AsyncSink struct {
-	next       interfaces.Sink
-	buffer     chan *models.LogEntry
-	wg         sync.WaitGroup
-	bufferSize int
-	closed     atomic.Bool
-	mu         sync.RWMutex
-	OnError    func(error, *models.LogEntry) // Optional error handler
+	next         interfaces.Sink
+	buffer       chan *models.LogEntry
+	wg           sync.WaitGroup
+	bufferSize   int
+	closed       atomic.Bool
+	droppedCount atomic.Uint64
+	mu           sync.RWMutex
+	OnError      func(error, *models.LogEntry) // Optional error handler
 }
 
 // -----------------------------------------------------------------------------
@@ -78,6 +82,12 @@ func (s *AsyncSink) worker() {
 }
 
 // -----------------------------------------------------------------------------
+// DroppedCount returns the total number of log entries dropped due to buffer saturation.
+func (s *AsyncSink) DroppedCount() uint64 {
+	return s.droppedCount.Load()
+}
+
+// -----------------------------------------------------------------------------
 
 func (s *AsyncSink) Write(entry *models.LogEntry) error {
 	s.mu.RLock()
@@ -92,6 +102,7 @@ func (s *AsyncSink) Write(entry *models.LogEntry) error {
 	case s.buffer <- entry:
 		return nil
 	default:
+		s.droppedCount.Add(1)
 		entry.Release() // Drop = Release ownership
 		return fmt.Errorf("buffer full, log dropped")
 	}

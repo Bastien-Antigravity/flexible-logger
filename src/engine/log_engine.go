@@ -1,21 +1,23 @@
-package engine
-
-// =============================================================================
-// ESSENTIAL PROCESS: Core logging engine coordinating log entry acquisition, dynamic metadata sampling, filtering, and sink dispatch.
+// -----------------------------------------------------------------------------
+// ESSENTIAL PROCESS:
+// Core logging engine coordinating log entry acquisition, dynamic metadata
+// sampling, filtering, and sink dispatch.
 //
 // DATA FLOW:
-//   1. Receives log invocation (Level, format, arguments).
-//   2. Evaluates severity threshold and optional probabilistic sampling.
-//   3. Borrows LogEntry from sync.Pool and enriches with caller metadata.
-//   4. Dispatches entry to configured primary Sink.
-//   5. Triggers Notifier on Warning or Error severity levels.
+// 1. Receives log invocation (Level, format, arguments).
+// 2. Evaluates severity threshold and optional probabilistic sampling.
+// 3. Borrows LogEntry from sync.Pool and enriches with caller metadata.
+// 4. Dispatches entry to configured primary Sink.
+// 5. Triggers Notifier on Warning or Error severity levels.
 //
 // KEY PARAMETERS:
-//   - Sink: Destination sink handling log persistence or network routing.
-//   - Notifier: Optional alert dispatcher for high-severity events.
-//   - Level: Configured minimum logging severity threshold.
-//   - SamplingRate: Statistical sampling ratio for non-critical entries.
-// =============================================================================
+// - Sink: Destination sink handling log persistence or network routing.
+// - Notifier: Optional alert dispatcher for high-severity events.
+// - Level: Configured minimum logging severity threshold.
+// - SamplingRate: Statistical sampling ratio for non-critical entries.
+// -----------------------------------------------------------------------------
+
+package engine
 
 import (
 	"fmt"
@@ -142,7 +144,7 @@ func (l *LogEngine) getEntry(level models.Level, msg string) *models.LogEntry {
 }
 
 // -----------------------------------------------------------------------------
-func (l *LogEngine) Log(level models.Level, format string, args ...any) {
+func (l *LogEngine) logInternal(level models.Level, format string, args ...any) {
 	if level < l.GetLevel() {
 		return
 	}
@@ -172,6 +174,11 @@ func (l *LogEngine) Log(level models.Level, format string, args ...any) {
 			error_handler.ReportInternalError(l.Name, "notifier", err, msg)
 		}
 	}
+}
+
+// -----------------------------------------------------------------------------
+func (l *LogEngine) Log(level models.Level, format string, args ...any) {
+	l.logInternal(level, format, args...)
 }
 
 // -----------------------------------------------------------------------------
@@ -235,18 +242,36 @@ func (l *LogEngine) LogWithCaller(level models.Level, msg, file, line, function,
 }
 
 // -----------------------------------------------------------------------------
-func (l *LogEngine) Debug(format string, args ...any)  { l.Log(models.LevelDebug, format, args...) }
-func (l *LogEngine) Info(format string, args ...any)   { l.Log(models.LevelInfo, format, args...) }
-func (l *LogEngine) Stream(format string, args ...any) { l.Log(models.LevelStream, format, args...) }
-func (l *LogEngine) Logon(format string, args ...any)  { l.Log(models.LevelLogon, format, args...) }
-func (l *LogEngine) Logout(format string, args ...any) { l.Log(models.LevelLogout, format, args...) }
-func (l *LogEngine) Trade(format string, args ...any)  { l.Log(models.LevelTrade, format, args...) }
-func (l *LogEngine) Schedule(format string, args ...any) {
-	l.Log(models.LevelSchedule, format, args...)
+func (l *LogEngine) Debug(format string, args ...any) {
+	l.logInternal(models.LevelDebug, format, args...)
 }
-func (l *LogEngine) Report(format string, args ...any)  { l.Log(models.LevelReport, format, args...) }
-func (l *LogEngine) Warning(format string, args ...any) { l.Log(models.LevelWarning, format, args...) }
-func (l *LogEngine) Error(format string, args ...any)   { l.Log(models.LevelError, format, args...) }
+func (l *LogEngine) Info(format string, args ...any) {
+	l.logInternal(models.LevelInfo, format, args...)
+}
+func (l *LogEngine) Stream(format string, args ...any) {
+	l.logInternal(models.LevelStream, format, args...)
+}
+func (l *LogEngine) Logon(format string, args ...any) {
+	l.logInternal(models.LevelLogon, format, args...)
+}
+func (l *LogEngine) Logout(format string, args ...any) {
+	l.logInternal(models.LevelLogout, format, args...)
+}
+func (l *LogEngine) Trade(format string, args ...any) {
+	l.logInternal(models.LevelTrade, format, args...)
+}
+func (l *LogEngine) Schedule(format string, args ...any) {
+	l.logInternal(models.LevelSchedule, format, args...)
+}
+func (l *LogEngine) Report(format string, args ...any) {
+	l.logInternal(models.LevelReport, format, args...)
+}
+func (l *LogEngine) Warning(format string, args ...any) {
+	l.logInternal(models.LevelWarning, format, args...)
+}
+func (l *LogEngine) Error(format string, args ...any) {
+	l.logInternal(models.LevelError, format, args...)
+}
 func (l *LogEngine) Critical(format string, args ...any) {
-	l.Log(models.LevelCritical, format, args...)
+	l.logInternal(models.LevelCritical, format, args...)
 }
