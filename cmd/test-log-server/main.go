@@ -15,6 +15,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	distributed_config "github.com/Bastien-Antigravity/distributed-config"
@@ -23,7 +24,17 @@ import (
 
 func main() {
 	fmt.Println("=== Log Server Test Client ===")
-	fmt.Println("Connecting to 127.0.0.2:9020...")
+
+	logPort := os.Getenv("LOG_SERVER_PORT")
+	if logPort == "" {
+		logPort = "0"
+	}
+	notifPort := os.Getenv("NOTIF_SERVER_PORT")
+	if notifPort == "" {
+		notifPort = "0"
+	}
+
+	fmt.Printf("Connecting to 127.0.0.2:%s...\n", logPort)
 
 	// 1. Setup Config
 	distConf := distributed_config.New("test-client")
@@ -32,18 +43,20 @@ func main() {
 	}
 	distConf.Capabilities["log_server"] = map[string]interface{}{
 		"ip":   "127.0.0.2",
-		"port": "9020",
+		"port": logPort,
 	}
 	// Add a dummy notif_server to satisfy profiles.NewHighPerfLogger
 	distConf.Capabilities["notif_server"] = map[string]interface{}{
 		"ip":   "127.0.0.2",
-		"port": "10080",
+		"port": notifPort,
 	}
 
 	test_func(distConf)
 
 	fmt.Println("Done.")
 }
+
+// -----------------------------------------------------------------------------
 
 func test_func(distConf *distributed_config.Config) {
 	logger := profiles.NewNoLockLogger("TestLogServer", distConf, false)
