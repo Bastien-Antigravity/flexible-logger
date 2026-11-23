@@ -13,6 +13,7 @@ package tests
 // =============================================================================
 
 import (
+	"io"
 	"net"
 	"strings"
 	"testing"
@@ -24,8 +25,27 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/profiles"
 )
 
+// probeLoopback verifies if loopback socket listening and dialing are permitted
+// in the test execution environment without polluting any test listener's backlog.
+func probeLoopback(t *testing.T) {
+	t.Helper()
+	probeLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("Loopback socket listen not permitted in sandbox: %v", err)
+	}
+	defer probeLn.Close()
+
+	probeConn, probeErr := net.DialTimeout("tcp", probeLn.Addr().String(), 100*time.Millisecond)
+	if probeErr != nil {
+		t.Skipf("Loopback socket dial not permitted in sandbox environment: %v", probeErr)
+	}
+	probeConn.Close()
+}
+
 // Helper to start a local mock server for handshakes
 func startMockServer(t *testing.T) (string, string, func()) {
+	probeLoopback(t)
+
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Skipf("Loopback socket listen not permitted in sandbox: %v", err)
@@ -33,14 +53,6 @@ func startMockServer(t *testing.T) (string, string, func()) {
 	addr := ln.Addr().String()
 	parts := strings.Split(addr, ":")
 	ip, port := parts[0], parts[1]
-
-	// Probe if loopback dial is permitted in the current execution environment
-	probeConn, probeErr := net.DialTimeout("tcp", addr, 100*time.Millisecond)
-	if probeErr != nil {
-		ln.Close()
-		t.Skipf("Loopback socket dial not permitted in sandbox environment: %v", probeErr)
-	}
-	probeConn.Close()
 
 	stop := make(chan struct{})
 	go func() {
@@ -56,8 +68,8 @@ func startMockServer(t *testing.T) (string, string, func()) {
 			}
 			go func(c net.Conn) {
 				defer c.Close()
-				buf := make([]byte, 1024)
-				_, _ = c.Read(buf) // Absorb Hello
+				// Continuously absorb incoming data until client closes connection
+				_, _ = io.Copy(io.Discard, c)
 			}(conn)
 		}
 	}()

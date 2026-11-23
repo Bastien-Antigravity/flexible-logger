@@ -24,18 +24,45 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/test_utils"
 )
 
-func TestLogServerConnection(t *testing.T) {
-	// 1. Setup Mock Server to avoid connection refusal
-	// Rename to notif-mock as per user request
-	logIp, logPort, stopLog := test_utils.StartMockServer("notif-mock")
-	defer stopLog()
+// probeLoopback verifies if loopback socket listening and dialing are permitted
+// in the test execution environment without polluting any test listener's backlog.
+func probeLoopback(t *testing.T) {
+	t.Helper()
+	probeLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("Loopback socket listen not permitted in sandbox: %v", err)
+	}
+	defer probeLn.Close()
 
-	// Probe if loopback dial is permitted in the current execution environment
-	probeConn, probeErr := net.DialTimeout("tcp", net.JoinHostPort(logIp, logPort), 100*time.Millisecond)
+	probeConn, probeErr := net.DialTimeout("tcp", probeLn.Addr().String(), 100*time.Millisecond)
 	if probeErr != nil {
 		t.Skipf("Loopback socket dial not permitted in sandbox environment: %v", probeErr)
 	}
 	probeConn.Close()
+}
+
+func probeLoopbackB(b *testing.B) {
+	b.Helper()
+	probeLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		b.Skipf("Loopback socket listen not permitted in sandbox: %v", err)
+	}
+	defer probeLn.Close()
+
+	probeConn, probeErr := net.DialTimeout("tcp", probeLn.Addr().String(), 100*time.Millisecond)
+	if probeErr != nil {
+		b.Skipf("Loopback socket dial not permitted in sandbox environment: %v", probeErr)
+	}
+	probeConn.Close()
+}
+
+func TestLogServerConnection(t *testing.T) {
+	probeLoopback(t)
+
+	// 1. Setup Mock Server to avoid connection refusal
+	// Rename to notif-mock as per user request
+	logIp, logPort, stopLog := test_utils.StartMockServer("notif-mock")
+	defer stopLog()
 
 	// 2. Setup Config
 	distConf := distributed_config.New("standalone")
@@ -66,16 +93,11 @@ func TestLogServerConnection(t *testing.T) {
 }
 
 func BenchmarkLogServerThroughput(b *testing.B) {
+	probeLoopbackB(b)
+
 	// Setup Mock
 	logIp, logPort, stopLog := test_utils.StartMockServer("notif-mock")
 	defer stopLog()
-
-	// Probe if loopback dial is permitted in the current execution environment
-	probeConn, probeErr := net.DialTimeout("tcp", net.JoinHostPort(logIp, logPort), 100*time.Millisecond)
-	if probeErr != nil {
-		b.Skipf("Loopback socket dial not permitted in sandbox environment: %v", probeErr)
-	}
-	probeConn.Close()
 
 	// Setup Config
 	distConf := distributed_config.New("standalone")

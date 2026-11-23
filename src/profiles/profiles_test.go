@@ -13,6 +13,7 @@ package profiles
 // =============================================================================
 
 import (
+	"io"
 	"net"
 	"strings"
 	"testing"
@@ -24,6 +25,23 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 )
+
+// probeLoopback verifies if loopback socket listening and dialing are permitted
+// in the test execution environment without polluting any test listener's backlog.
+func probeLoopback(t *testing.T) {
+	t.Helper()
+	probeLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("Loopback socket listen not permitted in sandbox: %v", err)
+	}
+	defer probeLn.Close()
+
+	probeConn, probeErr := net.DialTimeout("tcp", probeLn.Addr().String(), 100*time.Millisecond)
+	if probeErr != nil {
+		t.Skipf("Loopback socket dial not permitted in sandbox environment: %v", probeErr)
+	}
+	probeConn.Close()
+}
 
 // TestAllProfiles verifies that basic standalone profiles boot up and log correctly.
 func TestAllProfiles(t *testing.T) {
@@ -110,6 +128,8 @@ func TestAuditLogger_EmergencyFileFallback(t *testing.T) {
 // tested using "Integration Tests" with a local mock server.
 
 func startTestServer(t *testing.T) (string, string, func()) {
+	probeLoopback(t)
+
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Skipf("Loopback socket listen not permitted in sandbox: %v", err)
@@ -119,14 +139,6 @@ func startTestServer(t *testing.T) (string, string, func()) {
 	parts := strings.Split(addr, ":")
 	ip := parts[0]
 	port := parts[1]
-
-	// Probe if loopback dial is permitted in the current execution environment
-	probeConn, probeErr := net.DialTimeout("tcp", addr, 100*time.Millisecond)
-	if probeErr != nil {
-		ln.Close()
-		t.Skipf("Loopback socket dial not permitted in sandbox environment: %v", probeErr)
-	}
-	probeConn.Close()
 
 	stopChan := make(chan struct{})
 	go func() {
@@ -142,9 +154,8 @@ func startTestServer(t *testing.T) (string, string, func()) {
 			}
 			go func(c net.Conn) {
 				defer c.Close()
-				// Read & Discard (Hello handshake simulation)
-				buf := make([]byte, 1024)
-				_, _ = c.Read(buf)
+				// Absorb all incoming data until connection closes
+				_, _ = io.Copy(io.Discard, c)
 			}(conn)
 		}
 	}()
@@ -208,6 +219,8 @@ func TestNotifLogger_LocalQueue(t *testing.T) {
 }
 
 func TestProfile_AppNamePropagation(t *testing.T) {
+	probeLoopback(t)
+
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Skipf("Loopback socket listen not permitted in sandbox: %v", err)
@@ -218,43 +231,27 @@ func TestProfile_AppNamePropagation(t *testing.T) {
 	parts := strings.Split(addr, ":")
 	ip, port := parts[0], parts[1]
 
-	// Probe if loopback dial is permitted in the current execution environment
-	probeConn, probeErr := net.DialTimeout("tcp", addr, 100*time.Millisecond)
-	if probeErr != nil {
-		t.Skipf("Loopback socket dial not permitted in sandbox environment: %v", probeErr)
-	}
-	probeConn.Close()
-
 	expectedName := "test-app-123"
 	detectedNameChan := make(chan string, 1)
 
 	go func() {
-		conn, err := ln.Accept()
-		if err != nil {
-			return
-		}
-		defer conn.Close()
-
-		// Use the actual protocol logic to wait for initiation
-		// We wrap the raw net.Conn in a dummy TransportConnection for the protocol
-		// Wait, NewHelloProtocol expects interfaces.TransportConnection.
-		// We'll use a simplified version of WaitInitiation's logic since we don't have the wrapper here yet.
-		// Or easier: we know it's a FramedTCP, so we can just skip the 4-byte header and read the Capnp msg.
-
-		// Actually, let's just use the WaitInitiation from safe-socket if possible.
-		// But WaitInitiation needs a TransportConnection...
-		// Let's do it manually to keep the test simple and independent of facade wrappers.
-
-		header := make([]byte, 4)
-		_, _ = conn.Read(header) // FramedTCP length
-
-		payload := make([]byte, 1024)
-		n, _ := conn.Read(payload)
-
-		// We'll just check if the string exists in the raw payload for simplicity in this unit test
-		// as decoding Capnp without the full schema access in the test might be verbose.
-		if strings.Contains(string(payload[:n]), expectedName) {
-			detectedNameChan <- expectedName
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func(c net.Conn) {
+				defer c.Close()
+				buf := make([]byte, 2048)
+				n, _ := c.Read(buf)
+				if strings.Contains(string(buf[:n]), expectedName) {
+					select {
+					case detectedNameChan <- expectedName:
+					default:
+					}
+				}
+				_, _ = io.Copy(io.Discard, c)
+			}(conn)
 		}
 	}()
 
