@@ -20,11 +20,11 @@ This playbook outlines the testing architecture, validation strategies, mock inf
 
 | Component | Category | Verification Focus |
 | :--- | :--- | :--- |
-| **LogEngine** | Unit | Filtering logic, metadata enrichment, `sync.Pool` lifecycle, caller sampling. |
-| **Profiles** | Unit/Integration | Correct instantiation of different logger types (Standard, Audit, etc.) and behavior in a single loop. |
+| **LogEngine** | Unit | Filtering logic, metadata enrichment, `sync.Pool` lifecycle, caller sampling, unified caller depth parity. |
+| **Profiles** | Unit/Integration | Correct instantiation of all 8 profiles, blocking audit semantics, emergency file fallback, drop notifier wiring. |
 | **Notifiers** | Unit | Triggering alert channels for Warning/Error/Critical levels; local/remote channel piping. |
-| **Sinks** | Unit | Data routing (MultiSink), writing to writers, async queue management. |
-| **Serializers** | Unit | Round-trip fidelity of Cap'n Proto and JSON serialization across all 12 log levels. |
+| **Sinks** | Unit | Data routing (MultiSink), writing to writers, async queue management, bounded drain timeout (`Close()`), throttled Telegram drop alerts. |
+| **Serializers** | Unit | Round-trip fidelity of canonical SSoT Cap'n Proto (`microservice-toolbox`) and JSON serialization across all 12 log levels. |
 | **Concurrency** | Integration | Race condition testing in asynchronous logging paths using the `-race` detector. |
 | **Network Resilience** | Integration | Connectivity to mock servers, automatic reconnection logic, backoff strategies. |
 | **Performance** | Benchmark | Throughput verification (logs/sec) for zero-allocation performance goals. |

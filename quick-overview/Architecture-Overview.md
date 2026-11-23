@@ -55,8 +55,9 @@ flowchart TD
     subgraph AsyncNet [Async Network]
         direction TB
         Async -- Channel --> Worker([Worker Goroutine]):::net
+        Async -. "Throttled Drop Alert (Telegram)" .-> Notifier
         Worker --> NetSink["WriterSink (Network)"]:::net
-        NetSink --> Serializer["Cap'n Proto Serializer"]:::net
+        NetSink --> Serializer["Cap'n Proto Serializer (SSoT)"]:::net
         Serializer --> ManagedConn[ManagedConnection]:::net
         ManagedConn --> Socket["SafeSocket / TCP"]:::net
     end
@@ -89,13 +90,18 @@ The central entry point for all logging calls:
 ### 2. Sinks Pipeline
 All logs flow from the `LogEngine` through standard sink pipelines:
 *   **`WriterSink`**: Wraps standard writers (like Console or Files). Serializes logs (e.g., into Cap'n Proto bytes) and executes the write.
-*   **`AsyncSink`**: Decouples active execution threads from blocking I/O using highly-optimized buffered channels. Supports smart dropping behaviors if capacity thresholds are exceeded under high pressure.
+*   **`AsyncSink`**: Decouples active execution threads from blocking I/O using highly-optimized buffered channels.
+    *   **Drop Policy**: Drops newest incoming logs on buffer saturation (`DropNewest`), immediately recycling memory via `entry.Release()`.
+    *   **Drop Accounting**: Increments an atomic drop counter accessible via `DroppedCount() uint64`.
+    *   **Throttled Telegram Alerting**: Under sustained pressure, emits an aggregated warning alert tagged `telegram` (default 60s window) through the configured `dropNotifier` to alert operators without flooding channels.
+    *   **Bounded Drain Timeout**: On `Close()`, drains buffered items with a default 2.0s bounded timeout, forcefully terminating downstream blocking sinks if the worker stalls.
 *   **`MultiSink`**: Supports fan-out operations, distributing log payloads synchronously/asynchronously across multiple underlying sinks (e.g., local console logging combined with remote network logging).
 
-### 3. Connection Management (Outsourced)
-In alignment with modern microservice standards, the logger delegates underlying TCP socket and lifecycle management:
-*   **Centralized Integration**: Leverages the `conn_manager.NetworkManager` from the `microservice-toolbox`.
+### 3. Connection Management & Canonical Schemas SSoT
+In alignment with modern microservice standards, the logger delegates underlying TCP socket and wire schema management:
+*   **Centralized Integration**: Leverages the `conn_manager.NetworkManager` from `microservice-toolbox`.
 *   **ManagedConnection**: Automatically handles standard backoff profiles, retry jittering, connection state bookkeeping, and standard handshakes.
+*   **Canonical Wire Schemas (SSoT)**: Consumes wire protocol definitions (`logger.capnp`, `notifier.capnp`) directly from `microservice-toolbox/go/pkg/schemas/{logger,notifier}`, maintaining absolute parity across Go and Rust services without local schema drift.
 
 ### 4. Notifiers Subsystem
 A specialized pathway for high-importance telemetry (such as Warnings or Critical Errors):

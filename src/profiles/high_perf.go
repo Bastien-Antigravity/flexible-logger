@@ -47,6 +47,7 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 		Port string `json:"port"`
 	}
 	var lsCap ServerCap
+	var asyncNetSink *sink.AsyncSink
 	var networkSink interfaces.Sink
 
 	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
@@ -56,7 +57,8 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 		conn := nm.Connect(ipPtr, portPtr, &config.Common.PublicIP, "tcp-hello:"+name, conn_manager.ModeNonBlocking)
 		if conn != nil {
 			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
-			networkSink = sink.NewAsyncSink(ns, 16384) // Larger buffer
+			asyncNetSink = sink.NewAsyncSink(ns, 16384) // Larger buffer
+			networkSink = asyncNetSink
 		}
 	}
 
@@ -72,6 +74,9 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 	if useLocalNotif {
 		localNotif := notifier.NewLocalNotifier()
 		logger.Notifier = localNotif
+		if asyncNetSink != nil {
+			asyncNetSink.SetDropNotifier(localNotif, name)
+		}
 		return &NotifLoggerWrapper{
 			Logger:        logger,
 			localNotifier: localNotif,
@@ -81,6 +86,9 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 	var nsCap ServerCap
 	if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
 		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &config.Common.PublicIP, name)
+		if asyncNetSink != nil {
+			asyncNetSink.SetDropNotifier(logger.Notifier, name)
+		}
 	}
 
 	return logger

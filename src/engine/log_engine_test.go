@@ -33,7 +33,11 @@ func (m *MockSink) Write(entry *models.LogEntry) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.WriteCount++
-	m.LastEntry = entry
+	if entry != nil {
+		e := *entry
+		m.LastEntry = &e
+		entry.Release()
+	}
 	return nil
 }
 
@@ -289,6 +293,36 @@ func TestLogEngine_DirectLogVsHelper_IdenticalCallerAttribution(t *testing.T) {
 	}
 	if directEntry.FunctionName != "engine.emitLogAndHelperFromSameFunction" {
 		t.Errorf("Expected caller FunctionName 'engine.emitLogAndHelperFromSameFunction', got %q", directEntry.FunctionName)
+	}
+}
+
+// sampleWrapperFacade simulates a facade library (like universal-logger) that wraps LogEngine.
+func sampleWrapperFacade(eng *LogEngine, msg string) {
+	eng.Info("%s", msg)
+}
+
+func TestLogEngine_SetCallerSkip_WrapperAttribution(t *testing.T) {
+	mockSink := &MockSink{}
+	engine := &LogEngine{
+		Sink:              mockSink,
+		Level:             models.LevelDebug,
+		CollectCallerInfo: true,
+		SamplingRate:      1.0,
+	}
+
+	// 1. Without caller skip: resolves inside sampleWrapperFacade
+	sampleWrapperFacade(engine, "Without skip")
+	entryWithoutSkip := mockSink.GetLastEntry()
+	if entryWithoutSkip.FunctionName != "engine.sampleWrapperFacade" {
+		t.Errorf("Expected caller 'engine.sampleWrapperFacade', got %q", entryWithoutSkip.FunctionName)
+	}
+
+	// 2. With CallerSkip = 1: skips the wrapper and resolves to TestLogEngine_SetCallerSkip_WrapperAttribution
+	engine.SetCallerSkip(1)
+	sampleWrapperFacade(engine, "With skip=1")
+	entryWithSkip := mockSink.GetLastEntry()
+	if entryWithSkip.FunctionName != "engine.TestLogEngine_SetCallerSkip_WrapperAttribution" {
+		t.Errorf("Expected caller 'engine.TestLogEngine_SetCallerSkip_WrapperAttribution', got %q", entryWithSkip.FunctionName)
 	}
 }
 

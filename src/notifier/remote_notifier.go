@@ -23,8 +23,9 @@ import (
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	notifier_schema "github.com/Bastien-Antigravity/flexible-logger/src/schemas/capnp/notifier"
+
 	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
+	notifier_schema "github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/schemas/notifier"
 
 	capnp "capnproto.org/go/capnp/v3"
 )

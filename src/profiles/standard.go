@@ -53,7 +53,7 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 	}
 
 	// 3. Network (Async)
-	var networkSink interfaces.Sink
+	var networkSink *sink.AsyncSink
 
 	type ServerCap struct {
 		IP   string `json:"ip"`
@@ -89,6 +89,9 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 	if useLocalNotif {
 		localNotif := notifier.NewLocalNotifier()
 		logger.Notifier = localNotif
+		if networkSink != nil {
+			networkSink.SetDropNotifier(localNotif, name)
+		}
 		return &NotifLoggerWrapper{
 			Logger:        logger,
 			localNotifier: localNotif,
@@ -100,6 +103,9 @@ func NewStandardLogger(name string, config *distributed_config.Config, useLocalN
 		notifIpPtr := &nsCap.IP
 		notifPortPtr := &nsCap.Port
 		logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &config.Common.PublicIP, name)
+		if networkSink != nil {
+			networkSink.SetDropNotifier(logger.Notifier, name)
+		}
 	}
 
 	return logger

@@ -17,9 +17,9 @@ tags:
 ![Version](https://img.shields.io/badge/version-0.0.1-blue)
 ![Stability](https://img.shields.io/badge/stability-production--ready-green)
 
-A high-performance, zero-allocation, asynchronous logging library for Go, designed for distributed systems. 
+A high-performance, low-allocation (sync.Pool recycled), asynchronous logging library for Go, designed for distributed systems. 
 
-**v0.0.1 (Initial Release)**: Features hardened memory management, full Cap'n Proto level parity, unified caller stack depth attribution across `Log()` and severity helpers (`logInternal`), observable async buffer drop accounting (`AsyncSink.DroppedCount()`), and verified concurrency safety.
+**v0.0.1 (Production Ready)**: Features hardened memory management, canonical Single Source of Truth (SSoT) Cap'n Proto schemas from `microservice-toolbox`, unified caller stack depth attribution across `Log()` and severity helpers (`logInternal`), observable async buffer drop accounting (`AsyncSink.DroppedCount()`), rate-throttled Telegram buffer-drop alerting, bounded graceful shutdown drain timeout, resilient audit logging with emergency file fallback, and verified concurrency safety.
 
 ## 📖 Documentation Directory Map
 

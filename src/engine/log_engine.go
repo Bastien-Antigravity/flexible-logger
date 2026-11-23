@@ -47,6 +47,7 @@ type LogEngine struct {
 
 	// Metadata configuration
 	ProcessID           int
+	ProcessIDStr        string
 	ProcessName         string
 	CollectCallerInfo   bool // If true, collect caller info for ALL levels. If false, only for Error/Critical.
 	CallerSkip          int  // Optional offset to skip more frames (for wrapper libraries)
@@ -57,6 +58,17 @@ type LogEngine struct {
 	atomicLevel      atomic.Uint32
 	atomicCallerSkip atomic.Int32
 	callerSkipSet    atomic.Bool
+}
+
+// -----------------------------------------------------------------------------
+func (l *LogEngine) getProcessIDStr() string {
+	if l.ProcessIDStr != "" {
+		return l.ProcessIDStr
+	}
+	if l.ProcessID != 0 {
+		return strconv.Itoa(l.ProcessID)
+	}
+	return "0"
 }
 
 // -----------------------------------------------------------------------------
@@ -117,7 +129,7 @@ func (l *LogEngine) getEntry(level models.Level, msg string) *models.LogEntry {
 	e.ServiceName = l.ServiceName
 
 	// Static Metadata
-	e.ProcessID = strconv.Itoa(l.ProcessID)
+	e.ProcessID = l.getProcessIDStr()
 	e.ProcessName = l.ProcessName
 
 	// Dynamic Metadata (Caller Info)
@@ -204,7 +216,7 @@ func (l *LogEngine) LogWithCaller(level models.Level, msg, file, line, function,
 	e.ServiceName = l.ServiceName
 
 	// Static Metadata
-	e.ProcessID = strconv.Itoa(l.ProcessID)
+	e.ProcessID = l.getProcessIDStr()
 	e.ProcessName = l.ProcessName
 
 	// Dynamic Metadata from Explicit Caller Arguments

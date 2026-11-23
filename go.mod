@@ -18,9 +18,3 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace (
-	github.com/Bastien-Antigravity/distributed-config => ../distributed-config
-	github.com/Bastien-Antigravity/microservice-toolbox => ../microservice-toolbox
-	github.com/Bastien-Antigravity/safe-socket => ../safe-socket
-)

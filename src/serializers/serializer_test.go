@@ -18,7 +18,8 @@ import (
 	"time"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	logger_schema "github.com/Bastien-Antigravity/flexible-logger/src/schemas/capnp/logger"
+
+	logger_schema "github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/schemas/logger"
 
 	capnp "capnproto.org/go/capnp/v3"
 )

@@ -26,7 +26,7 @@ To prevent infinite recursive loops (where logging an error with the logger caus
 *   **Format**: Emitted as raw, human-readable text prefixed with `[LOGGER-INTERNAL-ERROR]` to ensure visibility without relying on network or file infrastructure.
 
 ### 2. Operational Impact
-During high-load testing or staging environment networking failures, keep an eye on standard error output (`os.Stderr`). If a remote server falls behind, standard buffers drop performance-tier logs but write a single fallback drop alert to prevent silent data loss.
+During high-load testing or staging environment networking failures, keep an eye on standard error output (`os.Stderr`). If a remote server falls behind or sinks encounter errors, diagnostic error notices are routed to standard error to prevent silent data loss.
 
 ---
 
@@ -46,4 +46,15 @@ All observability documents and log-aggregation filters in the Bastien-Antigravi
 All operational logger profiles are fully integrated with the `distributed-config` package. By updating the active configuration YAML (e.g., changing the logger profile key to `CloudNative` or `Audit` in the config server), the backend logger adjusts its sink topology on subsequent restarts.
 
 ### Can the logger block my application main thread?
-Only if you explicitly choose the **Audit** logger profile. The Audit profile implements a zero-drop blocking path. All other operational profiles (e.g., Standard, HighPerf, CloudNative) route standard statements via non-blocking asynchronous `AsyncSink` channels. If a sink buffer fills to maximum capacity, non-critical logs are probabilistically dropped, ensuring that your application's primary throughput never stalls due to network logging bottlenecks.
+* **Audit Profile**: Yes, by design. The Audit profile enforces synchronous local disk writes and blocking network TCP socket delivery (`ModeIndefinite`), waiting for socket transmission before returning.
+* **Standard Profile**: Synchronous on local destinations (Console and local File) to guarantee zero local log loss, but asynchronous on network log streaming.
+* **CloudNative / HighPerf / NoLock / Minimal**: Fully asynchronous. Application calls push to in-memory buffered channels (`AsyncSink`) and return immediately. If an asynchronous buffer fills to capacity under extreme pressure, entries are dropped according to the non-blocking `DropNewest` policy to prevent application deadlocks. (Probabilistic sampling is a distinct, configurable feature evaluated at ingestion).
+
+### What happens during shutdown if a downstream network sink hangs?
+`AsyncSink.Close()` implements a configurable **bounded drain timeout** (default 2.0s via `SetDrainTimeout`). If downstream network writers hang, the drain loop times out, forcefully closes downstream writers, and returns immediately so service shutdown is never blocked.
+
+### How are buffer drops monitored without flooding Telegram or notif-server?
+Drops are counted lock-free via `AsyncSink.DroppedCount() uint64`. Whenever drops occur, an atomic CAS rate-limiter ensures at most **one** warning notification is dispatched every 60 seconds (tagged `telegram`) with the count of drops in that window and cumulative drops.
+
+### What happens if the configured audit log directory cannot be created or accessed?
+`NewAuditLogger` catches the filesystem error, prints a loud `[LOGGER-AUDIT-ERROR]` diagnostic to `os.Stderr`, and immediately falls back to writing records to `filepath.Join(os.TempDir(), "emergency_audit.log")`.

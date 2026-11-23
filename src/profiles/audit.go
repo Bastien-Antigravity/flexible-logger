@@ -16,6 +16,10 @@ package profiles
 // =============================================================================
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/Bastien-Antigravity/flexible-logger/src/engine"
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	"github.com/Bastien-Antigravity/flexible-logger/src/factory"
@@ -46,6 +50,15 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 	if f, err := sink.NewRollingFileWriter(logPath, 10*1024*1024, 5); err == nil {
 		fileSink := sink.NewWriterSink(f, serializers.NewTextSerializer())
 		sinks = append(sinks, fileSink)
+	} else {
+		fmt.Fprintf(os.Stderr, "AuditLogger: Failed to open primary audit log %s: %v, attempting emergency audit fallback\n", logPath, err)
+		emergencyPath := filepath.Join(filepath.Dir(logPath), "emergency_audit.log")
+		if ef, eErr := sink.NewRollingFileWriter(emergencyPath, 10*1024*1024, 2); eErr == nil {
+			fileSink := sink.NewWriterSink(ef, serializers.NewTextSerializer())
+			sinks = append(sinks, fileSink)
+		} else {
+			fmt.Fprintf(os.Stderr, "AuditLogger: CRITICAL: Emergency audit log %s also failed: %v, falling back to console sink\n", emergencyPath, eErr)
+		}
 	}
 
 	// 3. Network (Sync / Blocking)
@@ -68,6 +81,8 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 		// This makes the log.Info() call WAIT for the socket write to complete.
 		networkSink := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
 		sinks = append(sinks, networkSink)
+	} else {
+		fmt.Fprintf(os.Stderr, "AuditLogger: CRITICAL: Missing or invalid 'log_server' capability in config for service %q - remote audit trail DISABLED\n", name)
 	}
 
 	// Combine
@@ -91,6 +106,8 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 	var nsCap ServerCap
 	if config != nil && config.GetCapability("notif_server", &nsCap) == nil && nsCap.IP != "" {
 		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &config.Common.PublicIP, name)
+	} else {
+		fmt.Fprintf(os.Stderr, "AuditLogger: WARNING: Missing or invalid 'notif_server' capability in config for service %q - remote security alerts DISABLED\n", name)
 	}
 
 	return logger
