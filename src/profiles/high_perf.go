@@ -23,7 +23,6 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/factory"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	"github.com/Bastien-Antigravity/flexible-logger/src/notifier"
 	"github.com/Bastien-Antigravity/flexible-logger/src/serializers"
 	"github.com/Bastien-Antigravity/flexible-logger/src/sink"
 	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
@@ -42,19 +41,11 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 		error_handler.ReportInternalError(name, source, err, msg)
 	}
 
-	type ServerCap struct {
-		IP   string `json:"ip"`
-		Port string `json:"port"`
-	}
-	var lsCap ServerCap
 	var asyncNetSink *sink.AsyncSink
 	var networkSink interfaces.Sink
 
-	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
-		ipPtr := &lsCap.IP
-		portPtr := &lsCap.Port
-
-		conn := nm.Connect(ipPtr, portPtr, &config.Common.PublicIP, "tcp-hello:"+name, conn_manager.ModeNonBlocking)
+	if lsCap, ok := resolveServerCap(config, "log_server"); ok {
+		conn := nm.Connect(&lsCap.IP, &lsCap.Port, publicIPPtr(config), "tcp-hello:"+name, conn_manager.ModeNonBlocking)
 		if conn != nil {
 			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
 			asyncNetSink = sink.NewAsyncSink(ns, 16384) // Larger buffer
@@ -67,29 +58,9 @@ func NewHighPerfLogger(name string, config *distributed_config.Config, useLocalN
 		networkSink = sink.NewConsoleSink()
 	}
 
-	// 5. Engine
+	// 2. Engine
 	logger := factory.CreateLogEngine(name, models.LevelInfo, networkSink, false, 1.0).(*engine.LogEngine)
 
-	// 3. Notifier
-	if useLocalNotif {
-		localNotif := notifier.NewLocalNotifier()
-		logger.Notifier = localNotif
-		if asyncNetSink != nil {
-			asyncNetSink.SetDropNotifier(localNotif, name)
-		}
-		return &NotifLoggerWrapper{
-			Logger:        logger,
-			localNotifier: localNotif,
-		}
-	}
-
-	var nsCap ServerCap
-	if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
-		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &config.Common.PublicIP, name)
-		if asyncNetSink != nil {
-			asyncNetSink.SetDropNotifier(logger.Notifier, name)
-		}
-	}
-
-	return logger
+	// 3. Notifier + throttled drop alerts
+	return attachNotifier(name, config, useLocalNotif, logger, asyncNetSink)
 }

@@ -19,6 +19,7 @@ import (
 )
 
 func TestGetDefaultLogPath(t *testing.T) {
+	t.Setenv("LOG_DIR", t.TempDir())
 	path := GetDefaultLogPath()
 
 	if !strings.HasSuffix(path, ".log") {

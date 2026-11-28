@@ -16,6 +16,7 @@ package notifier
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 )
@@ -24,8 +25,9 @@ import (
 
 // LocalNotifier sends notifications to a local channel instead of a network socket.
 type LocalNotifier struct {
-	mu        sync.RWMutex
-	notifChan chan *models.NotifMessage
+	mu           sync.RWMutex
+	notifChan    chan *models.NotifMessage
+	droppedCount atomic.Uint64
 }
 
 // -----------------------------------------------------------------------------
@@ -57,8 +59,16 @@ func (ln *LocalNotifier) Notify(n *models.NotifMessage) error {
 	case ch <- n:
 		return nil
 	default:
+		ln.droppedCount.Add(1)
 		return fmt.Errorf("local notification buffer full")
 	}
+}
+
+// -----------------------------------------------------------------------------
+
+// DroppedCount returns the total number of notifications dropped due to local queue saturation.
+func (ln *LocalNotifier) DroppedCount() uint64 {
+	return ln.droppedCount.Load()
 }
 
 // -----------------------------------------------------------------------------

@@ -95,6 +95,32 @@ func TestTextSerializer(t *testing.T) {
 	}
 }
 
+// -----------------------------------------------------------------------------
+
+func TestTextSerializer_EscapesNewlines(t *testing.T) {
+	s := NewTextSerializer()
+	entry := &models.LogEntry{
+		Timestamp:  time.Now().UTC(),
+		Level:      models.LevelInfo,
+		Message:    "line1\nline2\r\nline3",
+		LoggerName: "test-logger",
+	}
+
+	data, err := s.Serialize(entry)
+	if err != nil {
+		t.Fatalf("Failed to serialize: %v", err)
+	}
+
+	str := string(data)
+	trimmed := strings.TrimSuffix(str, "\n")
+	if strings.ContainsAny(trimmed, "\r\n") {
+		t.Fatalf("Expected serialized output to be a single line, got %q", str)
+	}
+	if !strings.Contains(trimmed, "line1 | line2 | line3") {
+		t.Fatalf("Expected escaped message 'line1 | line2 | line3', got %q", str)
+	}
+}
+
 func TestCapnpSerializer(t *testing.T) {
 	s := NewCapnpSerializer()
 

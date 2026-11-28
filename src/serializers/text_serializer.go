@@ -45,6 +45,10 @@ func (s *TextSerializer) Serialize(entry *models.LogEntry) ([]byte, error) {
 
 	timestamp := entry.Timestamp.UTC().Format("2006-01-02T15:04:05.000000000Z")
 
+	safeMsg := strings.ReplaceAll(entry.Message, "\r\n", " | ")
+	safeMsg = strings.ReplaceAll(safeMsg, "\n", " | ")
+	safeMsg = strings.ReplaceAll(safeMsg, "\r", " ")
+
 	base := fmt.Sprintf("%-33s %-12s %-22s %-10s %-20s %-25s %-6s %s",
 		timestamp,
 		truncate(entry.Hostname, 12),
@@ -53,7 +57,7 @@ func (s *TextSerializer) Serialize(entry *models.LogEntry) ([]byte, error) {
 		truncate(entry.Filename, 20),
 		truncate(entry.FunctionName, 25),
 		truncate(entry.LineNumber, 6),
-		entry.Message,
+		safeMsg,
 	)
 
 	// 2. Extra metadata (key=value)

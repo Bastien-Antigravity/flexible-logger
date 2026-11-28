@@ -28,8 +28,8 @@ This document details the operational behavior, profiles, metadata policies, and
 *   **Single Source of Truth (SSoT) Wire Schemas**: Cap'n Proto wire schemas (`logger.capnp`, `notifier.capnp`) are consumed directly from `microservice-toolbox/go/pkg/schemas/{logger,notifier}`, guaranteeing byte-level cross-service and cross-language parity.
 *   **Resilient Audit Logging**: `NewAuditLogger` enforces synchronous dual-destination logging with an emergency fallback file (`emergency_audit.log`) in temporary storage and loud stderr diagnostics if the target log directory cannot be opened.
 *   **Smart Metadata Enrichment**: Cached static fields (like `Hostname` and `ProcessID`) are embedded at zero cost, while caller details (file/line) are dynamically collected based on active log levels.
-*   **Probabilistic Log Sampling**: Implements smart sampling to handle high-traffic environments gracefully, ensuring non-critical lines are dropped safely while guaranteed delivery is enforced for all errors.
-*   **Real-Time Inspection**: Exposes the `GetLevel()` accessor, allowing real-time audit tools and test runner processes to examine active log levels dynamically.
+*   **Probabilistic Log Sampling**: Implements smart sampling to handle high-traffic environments gracefully, ensuring non-critical lines are dropped safely while guaranteed delivery is enforced for all errors. Supports atomic runtime updates via `SetSamplingRate(rate float64)`.
+*   **Real-Time Inspection & Control**: Exposes thread-safe `GetLevel()` access and atomic/synchronized runtime updates via `SetLevel(level)`, `SetCallerSkip(skip)`, and `SetSamplingRate(rate)`.
 
 ---
 
@@ -44,9 +44,9 @@ The logger provides pre-packaged profiles engineered for specific operational en
 | **Cloud Native**| **Yes** | Kubernetes/Cloud | Fully Async | **JSON** | **Enabled** (Async) | **Best Effort** (Drops on Saturation) |
 | **Audit** | **Yes** | Compliance/Legal | **Blocking** | Human Text | **Enabled** (**Blocking**) | **Never Drops Locally / Blocks Socket Write** |
 | **High Perf** | **Yes** | High Load | Async Net | *None* | **Enabled** (Async) | **Best Effort** (Drops on Saturation) |
-| **No Lock** | **Yes** | Concurrency | Fully Async | Binary Capnp | **Enabled** (Async) | **Best Effort** (Drops All) |
+| **No Lock** | **Yes** | Concurrency | Fully Async | Human Text | **Enabled** (Async) | **Best Effort** (Drops All) |
 | **Minimal** | **No** | Simple CLIs | Async | *None* | Disabled | **Best Effort** (Drops Console) |
-| **Notif Logger** | **Yes** | Real-time Apps | Fully Async | Capnp / Human | **Enabled** (Async) | **Local Reaction Queue** |
+| **Notif Logger** | **Yes** | Real-time Apps | Fully Async | Human Text | **Enabled** (Async) | **Local Reaction Queue** |
 
 ---
 
@@ -122,11 +122,11 @@ To achieve high throughput while capturing granular logs when they matter most, 
 
 When asynchronous buffer queues (`AsyncSink`) saturate under severe logging spikes or network stalls, the logger enforces a non-blocking `DropNewest` policy:
 
-1.  **Drop Counter Accounting**: Every dropped entry releases memory back to `sync.Pool` (`entry.Release()`) and increments an atomic drop counter (`s.droppedCount.Add(1)`). Callers can inspect cumulative drops at any time via `AsyncSink.DroppedCount() uint64`.
+1.  **Drop Counter Accounting**: Every dropped entry releases memory back to `sync.Pool` (`entry.Release()`) and increments an atomic drop counter (`s.droppedCount.Add(1)`). Callers can inspect cumulative drops at any time via `AsyncSink.DroppedCount() uint64`, as well as `LocalNotifier.DroppedCount()` and `RemoteNotifier.DroppedCount()` for notification queue saturation.
 2.  **Atomic CAS Rate Throttling**: To prevent buffer overflow bursts from triggering alert storms (e.g. hundreds of thousands of Telegram messages or `notif-server` floods), alerting is gated by an atomic compare-and-swap timestamp check (`lastAlertNano`).
     *   **Default Window**: 60 seconds (`dropAlertInterval`). Configurable via `SetDropAlertInterval(d time.Duration)`.
     *   **Aggregation**: Computes total drops within the elapsed window (`droppedInWindow = totalDropped - s.lastReportedDrop`).
-3.  **Telegram Alert Dispatch**: If a `dropNotifier` is wired (automatic in `NewStandardLogger` and `NewHighPerfLogger`), an alert notification is dispatched asynchronously:
+3.  **Telegram Alert Dispatch**: If a `dropNotifier` is wired (automatic across async profiles via `attachNotifier`: `NewStandardLogger`, `NewCloudLogger`, `NewHighPerfLogger`, `NewNoLockLogger`, and `NewNotifLogger`), an alert notification is dispatched asynchronously:
     *   **Tags**: `[]string{"telegram"}` (routing directly to Telegram alert channels).
     *   **Severity**: `models.LevelWarning`.
     *   **Payload**: `⚠️ [<service>] AsyncSink buffer saturated: <N> log(s) dropped in window (total dropped: <M>)`.

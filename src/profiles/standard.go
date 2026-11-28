@@ -24,7 +24,6 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/helpers"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	"github.com/Bastien-Antigravity/flexible-logger/src/notifier"
 	"github.com/Bastien-Antigravity/flexible-logger/src/serializers"
 	"github.com/Bastien-Antigravity/flexible-logger/src/sink"
 	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
@@ -41,72 +40,39 @@ import (
 func NewStandardLogger(name string, config *distributed_config.Config, useLocalNotif bool) interfaces.Logger {
 	// 1. Console (Sync)
 	consoleSink := sink.NewConsoleSink()
+	sinks := []interfaces.Sink{consoleSink}
 
 	// 2. File (Sync)
 	logPath := helpers.GetLogPath(name)
-	var fileSink interfaces.Sink
 	if f, err := sink.NewRollingFileWriter(logPath, 10*1024*1024, 5); err == nil {
-		fileSink = sink.NewWriterSink(f, serializers.NewTextSerializer())
+		sinks = append(sinks, sink.NewWriterSink(f, serializers.NewTextSerializer()))
 	} else {
-		fmt.Fprintf(os.Stderr, "StandardLogger: Failed to open log file %s: %v, falling back to console\n", logPath, err)
-		fileSink = consoleSink
+		fmt.Fprintf(os.Stderr, "StandardLogger: Failed to open log file %s: %v, falling back to console only\n", logPath, err)
 	}
 
 	// 3. Network (Async)
 	var networkSink *sink.AsyncSink
-
-	type ServerCap struct {
-		IP   string `json:"ip"`
-		Port string `json:"port"`
-	}
-	var lsCap ServerCap
-	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
+	if lsCap, ok := resolveServerCap(config, "log_server"); ok {
 		nm := conn_manager.NewStandardStrategy(nil)
 		nm.OnError = func(attempt int, err error, source string, msg string) {
 			error_handler.ReportInternalError(name, source, err, msg)
 		}
-		conn := nm.Connect(&lsCap.IP, &lsCap.Port, &config.Common.PublicIP, "tcp-hello:"+name, conn_manager.ModeIndefinite)
+		conn := nm.Connect(&lsCap.IP, &lsCap.Port, publicIPPtr(config), "tcp-hello:"+name, conn_manager.ModeIndefinite)
 		if conn != nil {
 			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
 			networkSink = sink.NewAsyncSink(ns, 4096)
+			sinks = append(sinks, networkSink)
 		}
 	} else {
 		fmt.Fprintf(os.Stderr, "StandardLogger: Logger configuration missing for log_server, running in local-only mode\n")
 	}
 
 	// 4. Combine
-	var sinks []interfaces.Sink
-	sinks = append(sinks, consoleSink, fileSink)
-	if networkSink != nil {
-		sinks = append(sinks, networkSink)
-	}
 	multi := sink.NewMultiSink(sinks...)
 
 	// 5. Engine
 	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0).(*engine.LogEngine)
 
-	// 6. Notifier
-	if useLocalNotif {
-		localNotif := notifier.NewLocalNotifier()
-		logger.Notifier = localNotif
-		if networkSink != nil {
-			networkSink.SetDropNotifier(localNotif, name)
-		}
-		return &NotifLoggerWrapper{
-			Logger:        logger,
-			localNotifier: localNotif,
-		}
-	}
-
-	var nsCap ServerCap
-	if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
-		notifIpPtr := &nsCap.IP
-		notifPortPtr := &nsCap.Port
-		logger.Notifier = notifier.NewRemoteNotifier(notifIpPtr, notifPortPtr, &config.Common.PublicIP, name)
-		if networkSink != nil {
-			networkSink.SetDropNotifier(logger.Notifier, name)
-		}
-	}
-
-	return logger
+	// 6. Notifier + throttled drop alerts
+	return attachNotifier(name, config, useLocalNotif, logger, networkSink)
 }

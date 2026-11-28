@@ -14,24 +14,37 @@ package engine
 // =============================================================================
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
+	"github.com/Bastien-Antigravity/flexible-logger/src/sink"
 )
 
 // MockSink for testing
 type MockSink struct {
-	LastEntry  *models.LogEntry
-	WriteCount int
-	Closed     bool
-	mu         sync.Mutex
+	LastEntry     *models.LogEntry
+	WriteCount    int
+	Closed        bool
+	ErrorToReturn error
+	mu            sync.Mutex
 }
 
 func (m *MockSink) Write(entry *models.LogEntry) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.ErrorToReturn != nil {
+		if entry != nil {
+			entry.Release()
+		}
+		return m.ErrorToReturn
+	}
 	m.WriteCount++
 	if entry != nil {
 		e := *entry
@@ -326,6 +339,176 @@ func TestLogEngine_SetCallerSkip_WrapperAttribution(t *testing.T) {
 	}
 }
 
+func TestLogEngine_AllSeverityHelpersAndGetLevel(t *testing.T) {
+	mockSink := &MockSink{}
+	mockNotif := &MockNotifier{}
+	eng := &LogEngine{
+		Sink:         mockSink,
+		Notifier:     mockNotif,
+		Level:        models.LevelInfo,
+		Name:         "SeverityTest",
+		SamplingRate: 1.0,
+	}
+
+	if got := eng.GetLevel(); got != models.LevelInfo {
+		t.Fatalf("Expected initial GetLevel() == LevelInfo, got %v", got)
+	}
+	eng.SetLevel(models.LevelDebug)
+	if got := eng.GetLevel(); got != models.LevelDebug {
+		t.Fatalf("Expected updated GetLevel() == LevelDebug, got %v", got)
+	}
+
+	cases := []struct {
+		name        string
+		call        func(string, ...any)
+		wantLevel   models.Level
+		expectNotif bool
+	}{
+		{"Debug", eng.Debug, models.LevelDebug, false},
+		{"Stream", eng.Stream, models.LevelStream, false},
+		{"Info", eng.Info, models.LevelInfo, false},
+		{"Logon", eng.Logon, models.LevelLogon, false},
+		{"Logout", eng.Logout, models.LevelLogout, false},
+		{"Trade", eng.Trade, models.LevelTrade, false},
+		{"Schedule", eng.Schedule, models.LevelSchedule, false},
+		{"Report", eng.Report, models.LevelReport, false},
+		{"Warning", eng.Warning, models.LevelWarning, true},
+		{"Error", eng.Error, models.LevelError, true},
+		{"Critical", eng.Critical, models.LevelCritical, true},
+	}
+
+	wantNotifs := 0
+	for i, tc := range cases {
+		tc.call("helper-%s-%d", tc.name, i)
+		entry := mockSink.GetLastEntry()
+		if entry == nil || entry.Level != tc.wantLevel {
+			t.Fatalf("%s: expected level %v, got %+v", tc.name, tc.wantLevel, entry)
+		}
+		if tc.expectNotif {
+			wantNotifs++
+		}
+	}
+
+	if mockSink.GetWriteCount() != len(cases) {
+		t.Fatalf("Expected %d sink writes, got %d", len(cases), mockSink.GetWriteCount())
+	}
+	if mockNotif.GetNotifyCount() != wantNotifs {
+		t.Fatalf("Expected %d notifications (Warning/Error/Critical), got %d", wantNotifs, mockNotif.GetNotifyCount())
+	}
+}
+
+func TestLogEngine_SetSamplingRate_DynamicUpdate(t *testing.T) {
+	mockSink := &MockSink{}
+	eng := &LogEngine{
+		Sink:         mockSink,
+		Level:        models.LevelDebug,
+		SamplingRate: 1.0,
+	}
+
+	eng.SetSamplingRate(0.01)
+	for i := 0; i < 500; i++ {
+		eng.Info("sampled-%d", i)
+	}
+	sampledWrites := mockSink.GetWriteCount()
+	if sampledWrites >= 50 {
+		t.Fatalf("Expected < 50 Info writes with SetSamplingRate(0.01), got %d", sampledWrites)
+	}
+
+	beforeCritical := mockSink.GetWriteCount()
+	for i := 0; i < 25; i++ {
+		eng.Error("err-%d", i)
+		eng.Critical("crit-%d", i)
+	}
+	if got := mockSink.GetWriteCount() - beforeCritical; got != 50 {
+		t.Fatalf("Expected all 50 Error/Critical logs bypass sampling, got %d", got)
+	}
+
+	eng.SetSamplingRate(1.0)
+	beforeFull := mockSink.GetWriteCount()
+	for i := 0; i < 50; i++ {
+		eng.Info("full-%d", i)
+	}
+	if got := mockSink.GetWriteCount() - beforeFull; got != 50 {
+		t.Fatalf("Expected all 50 Info writes after SetSamplingRate(1.0), got %d", got)
+	}
+
+	// Backward-compat: rate == 0.0 behaves as unset (100% pass-through)
+	eng.SetSamplingRate(0.0)
+	beforeZero := mockSink.GetWriteCount()
+	for i := 0; i < 50; i++ {
+		eng.Info("zero-%d", i)
+	}
+	if got := mockSink.GetWriteCount() - beforeZero; got != 50 {
+		t.Fatalf("Expected all 50 Info writes under backward-compat SetSamplingRate(0.0), got %d", got)
+	}
+}
+
+func TestLogEngine_BackpressureAndUnboundQueue_SuppressStderr(t *testing.T) {
+	multiOnlyFull := fmt.Sprintf("multisink write errors: %s; %s", sink.ErrBufferFull.Error(), sink.ErrBufferFull.Error())
+	multiMixed := fmt.Sprintf("multisink write errors: %s; disk IO error", sink.ErrBufferFull.Error())
+
+	if !isOnlyBufferFullErr(sink.ErrBufferFull) {
+		t.Fatal("Expected isOnlyBufferFullErr(sink.ErrBufferFull) == true")
+	}
+	if !isOnlyBufferFullErr(errors.New("multisink write errors: " + sink.ErrBufferFull.Error())) {
+		t.Fatal("Expected single MultiSink ErrBufferFull error to be suppressed")
+	}
+	if !isOnlyBufferFullErr(errors.New(multiOnlyFull)) {
+		t.Fatal("Expected multiple MultiSink ErrBufferFull errors to be suppressed")
+	}
+	if isOnlyBufferFullErr(errors.New(multiMixed)) {
+		t.Fatal("Expected mixed MultiSink error containing disk IO failure NOT to be suppressed")
+	}
+	if isOnlyBufferFullErr(errors.New("disk IO error")) {
+		t.Fatal("Expected unrelated error NOT to be suppressed")
+	}
+
+	captureStderr := func(fn func()) string {
+		oldStderr := os.Stderr
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatalf("Failed to create stderr pipe: %v", err)
+		}
+		os.Stderr = w
+		fn()
+		_ = w.Close()
+		os.Stderr = oldStderr
+
+		var buf bytes.Buffer
+		_, _ = io.Copy(&buf, r)
+		_ = r.Close()
+		return buf.String()
+	}
+
+	// 1. Expected ErrBufferFull & unbound local queue errors must NOT emit INTERNAL ERROR to stderr
+	mockSink := &MockSink{ErrorToReturn: sink.ErrBufferFull}
+	mockNotif := &MockNotifier{ErrorToReturn: errors.New("no local queue bound")}
+	eng := &LogEngine{
+		Name:         "SuppressTest",
+		Sink:         mockSink,
+		Notifier:     mockNotif,
+		Level:        models.LevelDebug,
+		SamplingRate: 1.0,
+	}
+
+	suppressedOut := captureStderr(func() {
+		eng.Error("backpressure event")
+	})
+	if strings.Contains(suppressedOut, "INTERNAL ERROR") {
+		t.Fatalf("Expected no INTERNAL ERROR output for expected backpressure/unbound queue, got: %q", suppressedOut)
+	}
+
+	// 2. Genuine sink or notifier errors MUST emit INTERNAL ERROR to stderr
+	mockSink.ErrorToReturn = errors.New("disk write failed")
+	mockNotif.ErrorToReturn = errors.New("notifier socket failure")
+	genuineOut := captureStderr(func() {
+		eng.Error("real failure")
+	})
+	if !strings.Contains(genuineOut, "disk write failed") || !strings.Contains(genuineOut, "notifier socket failure") {
+		t.Fatalf("Expected real sink and notifier errors on stderr, got: %q", genuineOut)
+	}
+}
+
 func TestLogEngine_ConcurrentStress(t *testing.T) {
 	mockSink := &MockSink{}
 	engine := &LogEngine{
@@ -338,7 +521,7 @@ func TestLogEngine_ConcurrentStress(t *testing.T) {
 	numLogsPerGoroutine := 100
 
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
+	wg.Add(numGoroutines + 4)
 
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
@@ -348,6 +531,31 @@ func TestLogEngine_ConcurrentStress(t *testing.T) {
 			}
 		}(i)
 	}
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 200; i++ {
+			engine.SetLevel(models.LevelDebug)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 200; i++ {
+			engine.SetCallerSkip(i % 2)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 200; i++ {
+			engine.SetSamplingRate(1.0)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 200; i++ {
+			_ = engine.GetLevel()
+		}
+	}()
 
 	wg.Wait()
 

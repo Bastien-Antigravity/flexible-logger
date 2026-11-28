@@ -22,7 +22,7 @@ To prevent infinite recursive loops (where logging an error with the logger caus
 
 ### 1. Fallback Path
 *   **Source File**: `src/error_handler/fallback_logger.go`
-*   **Behavior**: If any core logger component encounters a severe infrastructure failure (e.g., asynchronous ring buffer overflows, lost network connections, or bad Cap'n Proto framing), the failure is routed away from standard sinks and written directly to **`os.Stderr`**.
+*   **Behavior**: If any core logger component encounters a genuine infrastructure failure (e.g., lost network connections, disk write failures, or bad Cap'n Proto framing), the failure is routed away from standard sinks and written directly to **`os.Stderr`**. Expected non-blocking drop conditions (`sink.ErrBufferFull`) and unbound local notification queues are tracked via `DroppedCount()` and throttled drop alerts without flooding `os.Stderr` per message.
 *   **Format**: Emitted as raw, human-readable text prefixed with `[LOGGER-INTERNAL-ERROR]` to ensure visibility without relying on network or file infrastructure.
 
 ### 2. Operational Impact

@@ -108,6 +108,18 @@ func (w *RollingFileWriter) Write(p []byte) (int, error) {
 
 // -----------------------------------------------------------------------------
 
+func (w *RollingFileWriter) reopenAppend() {
+	f, openErr := os.OpenFile(w.filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if openErr == nil {
+		w.file = f
+		if fi, statErr := f.Stat(); statErr == nil {
+			w.curSize = fi.Size()
+		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+
 func (w *RollingFileWriter) rotate() error {
 	if w.file != nil {
 		_ = w.file.Close()
@@ -119,12 +131,18 @@ func (w *RollingFileWriter) rotate() error {
 		oldPath := fmt.Sprintf("%s.%d", w.filePath, i-1)
 		newPath := fmt.Sprintf("%s.%d", w.filePath, i)
 		if _, err := os.Stat(oldPath); err == nil {
-			_ = os.Rename(oldPath, newPath)
+			if err := os.Rename(oldPath, newPath); err != nil {
+				w.reopenAppend()
+				return fmt.Errorf("failed to rotate backup log %s: %w", oldPath, err)
+			}
 		}
 	}
 
 	// Rename active file to .0
-	_ = os.Rename(w.filePath, fmt.Sprintf("%s.0", w.filePath))
+	if err := os.Rename(w.filePath, fmt.Sprintf("%s.0", w.filePath)); err != nil && !os.IsNotExist(err) {
+		w.reopenAppend()
+		return fmt.Errorf("failed to rename active log file: %w", err)
+	}
 
 	// Reopen active file truncated
 	f, err := os.OpenFile(w.filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)

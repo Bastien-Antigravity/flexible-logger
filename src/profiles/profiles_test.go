@@ -15,6 +15,8 @@ package profiles
 import (
 	"io"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -43,14 +45,22 @@ func probeLoopback(t *testing.T) {
 	probeConn.Close()
 }
 
-// TestAllProfiles verifies that basic standalone profiles boot up and log correctly.
+// TestAllProfiles verifies that all 8 logger profiles boot cleanly (including nil config) and log without panicking.
 func TestAllProfiles(t *testing.T) {
+	t.Setenv("LOG_DIR", t.TempDir())
+
 	tests := []struct {
 		name    string
 		factory func() interfaces.Logger
 	}{
 		{"Minimal", func() interfaces.Logger { return NewMinimalLogger("test-min", false) }},
 		{"Developer", func() interfaces.Logger { return NewDevelLogger("test-dev", false) }},
+		{"Standard", func() interfaces.Logger { return NewStandardLogger("test-std", nil, false) }},
+		{"Audit", func() interfaces.Logger { return NewAuditLogger("test-audit", nil, false) }},
+		{"CloudNative", func() interfaces.Logger { return NewCloudLogger("test-cloud", nil, false) }},
+		{"HighPerf", func() interfaces.Logger { return NewHighPerfLogger("test-hp", nil, false) }},
+		{"NoLock", func() interfaces.Logger { return NewNoLockLogger("test-nolock", nil, false) }},
+		{"NotifLogger", func() interfaces.Logger { return NewNotifLogger("test-notif-nil", nil, true) }},
 	}
 
 	for _, tt := range tests {
@@ -100,6 +110,7 @@ func TestAuditLogger_Blocking(t *testing.T) {
 }
 
 func TestAuditLogger_MissingConfig_WarnsAndDoesNotPanic(t *testing.T) {
+	t.Setenv("LOG_DIR", t.TempDir())
 	// Calling NewAuditLogger with nil config should warn on stderr, attach console and file fallback, and not panic
 	logger := NewAuditLogger("audit-missing-test", nil, false)
 	if logger == nil {
@@ -111,16 +122,34 @@ func TestAuditLogger_MissingConfig_WarnsAndDoesNotPanic(t *testing.T) {
 }
 
 func TestAuditLogger_EmergencyFileFallback(t *testing.T) {
-	// Providing a serviceName with a non-existent subdirectory path triggers an open error on logPath
-	// NewAuditLogger must catch the error, fall back to emergency_audit.log, and return a working logger
-	logger := NewAuditLogger("nonexistent_audit_dir/fallback_test", nil, false)
+	// Point LOG_DIR at a regular file so opening the primary audit log inside it fails,
+	// forcing NewAuditLogger to fall back to filepath.Join(os.TempDir(), "emergency_audit.log").
+	blockingFile := filepath.Join(t.TempDir(), "not-a-dir")
+	if err := os.WriteFile(blockingFile, []byte("x"), 0o644); err != nil {
+		t.Fatalf("Failed to create blocking file: %v", err)
+	}
+	t.Setenv("LOG_DIR", blockingFile)
+
+	emergencyPath := filepath.Join(os.TempDir(), "emergency_audit.log")
+	_ = os.Remove(emergencyPath)
+	defer func() { _ = os.Remove(emergencyPath) }()
+
+	logger := NewAuditLogger("emergency-fallback-test", nil, false)
 	if logger == nil {
 		t.Fatal("Expected non-nil logger when falling back to emergency audit file")
 	}
-	defer logger.Close()
 
-	// Ensure logging does not panic
-	logger.Info("Emergency fallback log entry")
+	const sentinel = "Emergency fallback log entry"
+	logger.Info(sentinel)
+	logger.Close()
+
+	content, err := os.ReadFile(emergencyPath)
+	if err != nil {
+		t.Fatalf("Expected emergency audit file at %s, got error: %v", emergencyPath, err)
+	}
+	if !strings.Contains(string(content), sentinel) {
+		t.Fatalf("Expected emergency audit file to contain %q, got %q", sentinel, string(content))
+	}
 }
 
 // Note: Profiles like Standard, Audit, and CloudNative require a valid
@@ -167,6 +196,7 @@ func startTestServer(t *testing.T) (string, string, func()) {
 }
 
 func TestNotifLogger_LocalQueue(t *testing.T) {
+	t.Setenv("LOG_DIR", t.TempDir())
 	ip, port, stop := startTestServer(t)
 	defer stop()
 
@@ -219,6 +249,7 @@ func TestNotifLogger_LocalQueue(t *testing.T) {
 }
 
 func TestProfile_AppNamePropagation(t *testing.T) {
+	t.Setenv("LOG_DIR", t.TempDir())
 	probeLoopback(t)
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")

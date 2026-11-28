@@ -37,7 +37,7 @@ func main() {
 	fmt.Printf("Connecting to 127.0.0.2:%s...\n", logPort)
 
 	// 1. Setup Config
-	distConf := distributed_config.New("test-client")
+	distConf := distributed_config.New("standalone")
 	if distConf.Capabilities == nil {
 		distConf.Capabilities = make(map[string]interface{})
 	}

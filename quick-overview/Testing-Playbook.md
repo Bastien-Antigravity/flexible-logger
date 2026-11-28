@@ -20,11 +20,11 @@ This playbook outlines the testing architecture, validation strategies, mock inf
 
 | Component | Category | Verification Focus |
 | :--- | :--- | :--- |
-| **LogEngine** | Unit | Filtering logic, metadata enrichment, `sync.Pool` lifecycle, caller sampling, unified caller depth parity. |
-| **Profiles** | Unit/Integration | Correct instantiation of all 8 profiles, blocking audit semantics, emergency file fallback, drop notifier wiring. |
-| **Notifiers** | Unit | Triggering alert channels for Warning/Error/Critical levels; local/remote channel piping. |
-| **Sinks** | Unit | Data routing (MultiSink), writing to writers, async queue management, bounded drain timeout (`Close()`), throttled Telegram drop alerts. |
-| **Serializers** | Unit | Round-trip fidelity of canonical SSoT Cap'n Proto (`microservice-toolbox`) and JSON serialization across all 12 log levels. |
+| **LogEngine** | Unit | Filtering logic, all 11 severity helpers (`Debug`–`Critical`), metadata enrichment, `sync.Pool` lifecycle, dynamic `SetLevel`/`SetCallerSkip`/`SetSamplingRate` concurrency under `-race`, unified caller depth parity, and expected backpressure/unbound-queue stderr suppression. |
+| **Profiles** | Unit/Integration | Correct instantiation of all 8 profiles, nil-config safety, blocking audit semantics, emergency `os.TempDir()` file fallback, and throttled drop notifier wiring. |
+| **Notifiers** | Unit | Triggering alert channels for Warning/Error/Critical levels, `LocalNotifier`/`RemoteNotifier` `DroppedCount()` overflow accounting, dead-worker `closed` guard, and local/remote channel piping. |
+| **Sinks** | Unit | Data routing (`MultiSink`), writing to writers, async queue management, `RollingFileWriter` rename-failure active-log preservation, bounded drain timeout (`Close()`), and throttled Telegram drop alerts. |
+| **Serializers** | Unit | Round-trip fidelity of canonical SSoT Cap'n Proto (`microservice-toolbox`) and JSON serialization across all 12 log levels, plus 8-column `TextSerializer` CR/LF newline escaping. |
 | **Concurrency** | Integration | Race condition testing in asynchronous logging paths using the `-race` detector. |
 | **Network Resilience** | Integration | Connectivity to mock servers, automatic reconnection logic, backoff strategies. |
 | **Performance** | Benchmark | Throughput verification (logs/sec) for zero-allocation performance goals. |
@@ -90,8 +90,8 @@ Integration tests verify proper coordination between the logger and the wider mi
 ### 1. Log Server Connectivity Tool
 *   **Path**: `cmd/test-log-server/main.go`
 *   **Role**:
-    *   Acts as a standalone networking validation client to inspect connectivity against real active log servers at standard addresses (`127.0.0.2:9020`).
-    *   Accompanied by a complete `connection_test.go` suite to measure integration behavior and throughput under varying network topologies.
+    *   Acts as a standalone networking validation client resolved via `distributed_config.New("standalone")` (`CONFIG_PATH` or `standalone.yaml`) to inspect connectivity against active log servers.
+    *   Accompanied by a complete `connection_test.go` suite using isolated temp configs to measure integration behavior and throughput under varying network topologies.
 
 ### 2. Mock Infrastructure
 *   **Path**: `src/test_utils/mock_server.go`
@@ -142,7 +142,7 @@ go run cmd/see-console-output/example_text_output.go
 
 ## Continuous Integration Quality Gates
 
-The `flexible-logger` CI pipeline (`.github/workflows/ci-cd.yml`) implements three automated quality checks on every push:
+The `flexible-logger` CI pipeline (`.github/workflows/ci.yml`, delegated to `Bastien-Antigravity/fleet-operation-brain/.github/workflows/master-ci.yml@develop`) executes automated quality checks on every push:
 1.  **Code Sanitization**: Runs the ecosystem standard `golangci-lint` to enforce style guidelines.
 2.  **Strict Verification Suite**: Executes all unit tests in verbose mode with the race detector enabled (`-v -race`).
 3.  **Benchmark Integrity**: Runs the 1,000,000-message throughput test to verify that memory pooling objectives are maintained under heavy concurrent pressure.

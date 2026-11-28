@@ -19,7 +19,7 @@ tags:
 
 A high-performance, low-allocation (sync.Pool recycled), asynchronous logging library for Go, designed for distributed systems. 
 
-**v0.0.1 (Production Ready)**: Features hardened memory management, canonical Single Source of Truth (SSoT) Cap'n Proto schemas from `microservice-toolbox`, unified caller stack depth attribution across `Log()` and severity helpers (`logInternal`), observable async buffer drop accounting (`AsyncSink.DroppedCount()`), rate-throttled Telegram buffer-drop alerting, bounded graceful shutdown drain timeout, resilient audit logging with emergency file fallback, and verified concurrency safety.
+**v0.0.1 (Production Ready)**: Features hardened memory management, canonical Single Source of Truth (SSoT) Cap'n Proto schemas from `microservice-toolbox`, unified caller stack depth attribution across `Log()` and severity helpers (`logInternal`), atomic runtime controls (`SetLevel`, `SetCallerSkip`, `SetSamplingRate`), observable async buffer drop accounting (`AsyncSink.DroppedCount()`, `LocalNotifier.DroppedCount()`, `RemoteNotifier.DroppedCount()`), rate-throttled Telegram buffer-drop alerting, bounded graceful shutdown drain timeout, `RollingFileWriter` rename-failure preservation, `TextSerializer` CR/LF newline escaping, resilient audit logging with emergency file fallback, and verified concurrency safety.
 
 ## 📖 Documentation Directory Map
 
@@ -80,7 +80,7 @@ logger := profiles.NewAuditLogger("my-service", config, false)
 // 4. High Perf (Network Only)
 logger := profiles.NewHighPerfLogger("my-service", config, false)
 
-// 5. No Lock (Binary Cap'n Proto)
+// 5. No Lock (Async Text File + Async Cap'n Proto Network)
 logger := profiles.NewNoLockLogger("my-service", config, false)
 
 // 6. Notif Logger (Local Event Reaction)

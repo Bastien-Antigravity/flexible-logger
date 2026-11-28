@@ -83,6 +83,7 @@ func startMockServer(t *testing.T) (string, string, func()) {
 // -----------------------------------------------------------------------------
 
 func TestPremium_AuditBlocking(t *testing.T) {
+	t.Setenv("LOG_DIR", t.TempDir())
 	ip, port, stop := startMockServer(t)
 	defer stop()
 
@@ -117,6 +118,7 @@ func TestPremium_AuditBlocking(t *testing.T) {
 }
 
 func TestPremium_SamplingIntegrity(t *testing.T) {
+	t.Setenv("LOG_DIR", t.TempDir())
 	ip, port, stop := startMockServer(t)
 	defer stop()
 
@@ -145,7 +147,7 @@ func TestPremium_SamplingIntegrity(t *testing.T) {
 
 	// 3. Set Sampling to 50%
 	if e, ok := logger.(*engine.LogEngine); ok {
-		e.SamplingRate = 0.5
+		e.SetSamplingRate(0.5)
 	} else {
 		t.Skip("Logger implementation does not support manual sampling control")
 	}
@@ -161,6 +163,7 @@ func TestPremium_SamplingIntegrity(t *testing.T) {
 }
 
 func TestPremium_FleetHandshake(t *testing.T) {
+	t.Setenv("LOG_DIR", t.TempDir())
 	ip, port, stop := startMockServer(t)
 	defer stop()
 

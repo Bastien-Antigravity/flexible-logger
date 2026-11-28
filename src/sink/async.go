@@ -18,6 +18,7 @@
 package sink
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -27,6 +28,11 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
 )
+
+// -----------------------------------------------------------------------------
+
+// ErrBufferFull is returned by AsyncSink.Write when the bounded buffer is saturated.
+var ErrBufferFull = errors.New("buffer full, log dropped")
 
 // -----------------------------------------------------------------------------
 // AsyncSink wraps another sink and writes asynchronously using a buffered channel.
@@ -114,8 +120,11 @@ func (s *AsyncSink) worker() {
 
 		err := s.next.Write(entry)
 		if err != nil {
-			if s.OnError != nil {
-				s.OnError(err, entry)
+			s.mu.RLock()
+			onErr := s.OnError
+			s.mu.RUnlock()
+			if onErr != nil {
+				onErr(err, entry)
 			} else {
 				// Safely report error since we still hold a reference
 				error_handler.ReportInternalError(entry.LoggerName, "AsyncSink.worker", err, entry.Message)
@@ -152,7 +161,7 @@ func (s *AsyncSink) Write(entry *models.LogEntry) error {
 		loggerName := entry.LoggerName
 		entry.Release() // Drop = Release ownership
 		s.maybeTriggerDropAlert(total, loggerName)
-		return fmt.Errorf("buffer full, log dropped")
+		return ErrBufferFull
 	}
 }
 
@@ -180,7 +189,12 @@ func (s *AsyncSink) maybeTriggerDropAlert(totalDropped uint64, loggerName string
 		droppedInWindow = 1
 	}
 
+	s.mu.RLock()
 	svc := s.serviceName
+	onDropAlert := s.OnDropAlert
+	dropNotifier := s.dropNotifier
+	s.mu.RUnlock()
+
 	if svc == "" {
 		svc = loggerName
 	}
@@ -191,12 +205,12 @@ func (s *AsyncSink) maybeTriggerDropAlert(totalDropped uint64, loggerName string
 	alertMsg := fmt.Sprintf("⚠️ [%s] AsyncSink buffer saturated: %d log(s) dropped in window (total dropped: %d)", svc, droppedInWindow, totalDropped)
 	error_handler.ReportInternalError(svc, "AsyncSink.BufferOverflow", fmt.Errorf("%s", alertMsg), "")
 
-	if s.OnDropAlert != nil {
-		s.OnDropAlert(droppedInWindow, totalDropped)
+	if onDropAlert != nil {
+		onDropAlert(droppedInWindow, totalDropped)
 	}
 
-	if s.dropNotifier != nil {
-		_ = s.dropNotifier.Notify(&models.NotifMessage{
+	if dropNotifier != nil {
+		_ = dropNotifier.Notify(&models.NotifMessage{
 			Message: alertMsg,
 			Level:   models.LevelWarning.String(),
 			Tags:    []string{"telegram"},

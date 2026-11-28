@@ -16,6 +16,8 @@ package main
 
 import (
 	"net"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -56,8 +58,20 @@ func probeLoopbackB(b *testing.B) {
 	probeConn.Close()
 }
 
+func setupIsolatedTestConfig(tb testing.TB) {
+	tb.Helper()
+	tmpDir := tb.TempDir()
+	tb.Setenv("LOG_DIR", filepath.Join(tmpDir, "logs"))
+	cfgPath := filepath.Join(tmpDir, "standalone.yaml")
+	if err := os.WriteFile(cfgPath, []byte("common:\n  name: test-log-server\n"), 0o644); err != nil {
+		tb.Fatalf("Failed to write temp config: %v", err)
+	}
+	tb.Setenv("CONFIG_PATH", cfgPath)
+}
+
 func TestLogServerConnection(t *testing.T) {
 	probeLoopback(t)
+	setupIsolatedTestConfig(t)
 
 	// 1. Setup Mock Server to avoid connection refusal
 	// Rename to notif-mock as per user request
@@ -94,6 +108,7 @@ func TestLogServerConnection(t *testing.T) {
 
 func BenchmarkLogServerThroughput(b *testing.B) {
 	probeLoopbackB(b)
+	setupIsolatedTestConfig(b)
 
 	// Setup Mock
 	logIp, logPort, stopLog := test_utils.StartMockServer("notif-mock")

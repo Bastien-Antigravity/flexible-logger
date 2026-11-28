@@ -26,7 +26,6 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/helpers"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	"github.com/Bastien-Antigravity/flexible-logger/src/notifier"
 	"github.com/Bastien-Antigravity/flexible-logger/src/serializers"
 	"github.com/Bastien-Antigravity/flexible-logger/src/sink"
 	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
@@ -51,31 +50,25 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 		fileSink := sink.NewWriterSink(f, serializers.NewTextSerializer())
 		sinks = append(sinks, fileSink)
 	} else {
-		fmt.Fprintf(os.Stderr, "AuditLogger: Failed to open primary audit log %s: %v, attempting emergency audit fallback\n", logPath, err)
-		emergencyPath := filepath.Join(filepath.Dir(logPath), "emergency_audit.log")
+		emergencyPath := filepath.Join(os.TempDir(), "emergency_audit.log")
+		fmt.Fprintf(os.Stderr, "[LOGGER-AUDIT-ERROR] AuditLogger: Failed to open primary audit log %s: %v, attempting emergency audit fallback at %s\n", logPath, err, emergencyPath)
 		if ef, eErr := sink.NewRollingFileWriter(emergencyPath, 10*1024*1024, 2); eErr == nil {
 			fileSink := sink.NewWriterSink(ef, serializers.NewTextSerializer())
 			sinks = append(sinks, fileSink)
 		} else {
-			fmt.Fprintf(os.Stderr, "AuditLogger: CRITICAL: Emergency audit log %s also failed: %v, falling back to console sink\n", emergencyPath, eErr)
+			fmt.Fprintf(os.Stderr, "[LOGGER-AUDIT-ERROR] AuditLogger: CRITICAL: Emergency audit log %s also failed: %v, falling back to console sink\n", emergencyPath, eErr)
 		}
 	}
 
 	// 3. Network (Sync / Blocking)
-	type ServerCap struct {
-		IP   string `json:"ip"`
-		Port string `json:"port"`
-	}
-
-	var lsCap ServerCap
-	if config != nil && config.GetCapability("log_server", &lsCap) == nil && lsCap.IP != "" {
+	if lsCap, ok := resolveServerCap(config, "log_server"); ok {
 		nm := conn_manager.NewCriticalStrategy(nil)
 		nm.OnError = func(attempt int, err error, source string, msg string) {
 			error_handler.ReportInternalError(name, source, err, msg)
 		}
 
 		// Use Connect with ModeIndefinite for Audit trail
-		conn := nm.Connect(&lsCap.IP, &lsCap.Port, &config.Common.PublicIP, "tcp-hello:"+name, conn_manager.ModeIndefinite)
+		conn := nm.Connect(&lsCap.IP, &lsCap.Port, publicIPPtr(config), "tcp-hello:"+name, conn_manager.ModeIndefinite)
 
 		// IMPORTANT: Wrap directly in WriterSink WITHOUT an AsyncSink wrapper.
 		// This makes the log.Info() call WAIT for the socket write to complete.
@@ -93,22 +86,10 @@ func NewAuditLogger(name string, config *distributed_config.Config, useLocalNoti
 	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, true, 1.0).(*engine.LogEngine)
 
 	// 5. Notifier (Initialized independently of log_server)
-	if useLocalNotif {
-		localNotif := notifier.NewLocalNotifier()
-		logger.Notifier = localNotif
-		return &NotifLoggerWrapper{
-			Logger:        logger,
-			localNotifier: localNotif,
+	if !useLocalNotif {
+		if _, ok := resolveServerCap(config, "notif_server"); !ok {
+			fmt.Fprintf(os.Stderr, "AuditLogger: WARNING: Missing or invalid 'notif_server' capability in config for service %q - remote security alerts DISABLED\n", name)
 		}
 	}
-
-	// Async is fine for notifs even in audit mode, as logs are the primary trail
-	var nsCap ServerCap
-	if config != nil && config.GetCapability("notif_server", &nsCap) == nil && nsCap.IP != "" {
-		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &config.Common.PublicIP, name)
-	} else {
-		fmt.Fprintf(os.Stderr, "AuditLogger: WARNING: Missing or invalid 'notif_server' capability in config for service %q - remote security alerts DISABLED\n", name)
-	}
-
-	return logger
+	return attachNotifier(name, config, useLocalNotif, logger)
 }

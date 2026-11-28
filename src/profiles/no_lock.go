@@ -24,7 +24,6 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/helpers"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	"github.com/Bastien-Antigravity/flexible-logger/src/notifier"
 	"github.com/Bastien-Antigravity/flexible-logger/src/serializers"
 	"github.com/Bastien-Antigravity/flexible-logger/src/sink"
 	"github.com/Bastien-Antigravity/microservice-toolbox/go/pkg/conn_manager"
@@ -42,39 +41,31 @@ func NewNoLockLogger(name string, config *distributed_config.Config, useLocalNot
 	// 1. Console (Async)
 	consoleSink := sink.NewConsoleSink()
 	asyncConsole := sink.NewAsyncSink(consoleSink, 1024)
+	sinks := []interfaces.Sink{asyncConsole}
 
 	// 2. File (Async)
 	logPath := helpers.GetLogPath(name)
-	var fileSink interfaces.Sink
-	f, err := sink.NewRollingFileWriter(logPath, 10*1024*1024, 5)
-	if err != nil {
-		fileSink = sink.NewConsoleSink()
+	var asyncFile *sink.AsyncSink
+	if f, err := sink.NewRollingFileWriter(logPath, 10*1024*1024, 5); err == nil {
+		fileSink := sink.NewWriterSink(f, serializers.NewTextSerializer())
+		asyncFile = sink.NewAsyncSink(fileSink, 4096)
+		sinks = append(sinks, asyncFile)
 	} else {
-		fileSink = sink.NewWriterSink(f, serializers.NewTextSerializer())
+		fmt.Fprintf(os.Stderr, "NoLockLogger: Failed to open log file %s: %v, continuing without file sink\n", logPath, err)
 	}
-	asyncFile := sink.NewAsyncSink(fileSink, 4096)
 
 	// 3. Network (Async)
-	nm := conn_manager.NewPerformanceStrategy(nil)
-	nm.OnError = func(attempt int, err error, source string, msg string) {
-		error_handler.ReportInternalError(name, source, err, msg)
-	}
-
-	type ServerCap struct {
-		IP   string `json:"ip"`
-		Port string `json:"port"`
-	}
-	var lsCap ServerCap
-	var networkSink interfaces.Sink
-
-	if err := config.GetCapability("log_server", &lsCap); err == nil && lsCap.IP != "" {
-		ipPtr := &lsCap.IP
-		portPtr := &lsCap.Port
-
-		conn, err := nm.ConnectWithRetry(ipPtr, portPtr, &config.Common.PublicIP, "tcp-hello:"+name)
+	var networkSink *sink.AsyncSink
+	if lsCap, ok := resolveServerCap(config, "log_server"); ok {
+		nm := conn_manager.NewPerformanceStrategy(nil)
+		nm.OnError = func(attempt int, err error, source string, msg string) {
+			error_handler.ReportInternalError(name, source, err, msg)
+		}
+		conn, err := nm.ConnectWithRetry(&lsCap.IP, &lsCap.Port, publicIPPtr(config), "tcp-hello:"+name)
 		if err == nil {
 			ns := sink.NewWriterSink(conn, serializers.NewCapnpSerializer())
 			networkSink = sink.NewAsyncSink(ns, 8192)
+			sinks = append(sinks, networkSink)
 		} else {
 			fmt.Fprintf(os.Stderr, "NoLockLogger: Failed to connect to log server: %v\n", err)
 		}
@@ -83,30 +74,11 @@ func NewNoLockLogger(name string, config *distributed_config.Config, useLocalNot
 	}
 
 	// 4. MultiSink
-	var sinks []interfaces.Sink
-	sinks = append(sinks, asyncConsole, asyncFile)
-	if networkSink != nil {
-		sinks = append(sinks, networkSink)
-	}
 	multi := sink.NewMultiSink(sinks...)
 
 	// 5. Engine
 	logger := factory.CreateLogEngine(name, models.LevelInfo, multi, false, 1.0).(*engine.LogEngine)
 
-	// 6. Notifier
-	if useLocalNotif {
-		localNotif := notifier.NewLocalNotifier()
-		logger.Notifier = localNotif
-		return &NotifLoggerWrapper{
-			Logger:        logger,
-			localNotifier: localNotif,
-		}
-	}
-
-	var nsCap ServerCap
-	if err := config.GetCapability("notif_server", &nsCap); err == nil && nsCap.IP != "" {
-		logger.Notifier = notifier.NewRemoteNotifier(&nsCap.IP, &nsCap.Port, &config.Common.PublicIP, name)
-	}
-
-	return logger
+	// 6. Notifier + throttled drop alerts
+	return attachNotifier(name, config, useLocalNotif, logger, asyncConsole, asyncFile, networkSink)
 }

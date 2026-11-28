@@ -22,7 +22,6 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/helpers"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
-	"github.com/Bastien-Antigravity/flexible-logger/src/notifier"
 	"github.com/Bastien-Antigravity/flexible-logger/src/serializers"
 	"github.com/Bastien-Antigravity/flexible-logger/src/sink"
 )
@@ -34,37 +33,23 @@ import (
 func NewDevelLogger(name string, useLocalNotif bool) interfaces.Logger {
 	// 1. Console Sink
 	consoleSink := sink.NewConsoleSink()
+	sinks := []interfaces.Sink{consoleSink}
 
 	// 2. File Sink
 	logPath := helpers.GetLogPath(name)
-	var fileSink interfaces.Sink
-	f, err := sink.NewRollingFileWriter(logPath, 10*1024*1024, 5)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "DevelLogger: Failed to open log file %s: %v, falling back to console\n", logPath, err)
-		fileSink = consoleSink
-	} else {
+	if f, err := sink.NewRollingFileWriter(logPath, 10*1024*1024, 5); err == nil {
 		// Use TextSerializer for development logs so they are readable in the file
-		fileSink = sink.NewWriterSink(f, serializers.NewTextSerializer())
+		sinks = append(sinks, sink.NewWriterSink(f, serializers.NewTextSerializer()))
+	} else {
+		fmt.Fprintf(os.Stderr, "DevelLogger: Failed to open log file %s: %v, falling back to console only\n", logPath, err)
 	}
 
 	// 3. MultiSink (Fan-out)
-	// Both are sync.
-	multi := sink.NewMultiSink(consoleSink, fileSink)
+	multi := sink.NewMultiSink(sinks...)
 
-	// 4. Wrappers
-	// SyncPooledSink is obsolete. MultiSink and children handle lifecycle via ref counting.
 	// 4. Engine
 	logger := factory.CreateLogEngine(name, models.LevelDebug, multi, true, 1.0).(*engine.LogEngine)
 
 	// 5. Notifier
-	if useLocalNotif {
-		localNotif := notifier.NewLocalNotifier()
-		logger.Notifier = localNotif
-		return &NotifLoggerWrapper{
-			Logger:        logger,
-			localNotifier: localNotif,
-		}
-	}
-
-	return logger
+	return attachNotifier(name, nil, useLocalNotif, logger)
 }

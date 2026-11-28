@@ -44,9 +44,10 @@ type RemoteNotifier struct {
 	conn       io.WriteCloser // stored reference for clean shutdown
 	connMu     sync.Mutex     // guards conn reference
 	connReady  chan struct{}  // signals that conn has been initialized
-	closeOnce  sync.Once
-	mu         sync.RWMutex
-	closed     atomic.Bool
+	closeOnce    sync.Once
+	mu           sync.RWMutex
+	closed       atomic.Bool
+	droppedCount atomic.Uint64
 }
 
 // -----------------------------------------------------------------------------
@@ -86,8 +87,16 @@ func (rn *RemoteNotifier) Notify(n *models.NotifMessage) error {
 	case rn.notifChan <- n:
 		return nil
 	default:
+		rn.droppedCount.Add(1)
 		return fmt.Errorf("notification buffer full")
 	}
+}
+
+// -----------------------------------------------------------------------------
+
+// DroppedCount returns the total number of remote notifications dropped due to buffer saturation.
+func (rn *RemoteNotifier) DroppedCount() uint64 {
+	return rn.droppedCount.Load()
 }
 
 // -----------------------------------------------------------------------------
@@ -147,6 +156,9 @@ func (rn *RemoteNotifier) worker() {
 	close(rn.connReady)
 
 	if conn == nil {
+		rn.mu.Lock()
+		rn.closed.Store(true)
+		rn.mu.Unlock()
 		error_handler.ReportInternalError("RemoteNotifier", "worker.connect", fmt.Errorf("failed to initialize connection"), "")
 		return
 	}

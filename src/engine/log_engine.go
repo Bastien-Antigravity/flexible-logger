@@ -20,11 +20,14 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -32,6 +35,7 @@ import (
 	"github.com/Bastien-Antigravity/flexible-logger/src/error_handler"
 	"github.com/Bastien-Antigravity/flexible-logger/src/interfaces"
 	"github.com/Bastien-Antigravity/flexible-logger/src/models"
+	"github.com/Bastien-Antigravity/flexible-logger/src/sink"
 )
 
 // -----------------------------------------------------------------------------
@@ -46,18 +50,19 @@ type LogEngine struct {
 	ServiceName string
 
 	// Metadata configuration
-	ProcessID           int
-	ProcessIDStr        string
-	ProcessName         string
-	CollectCallerInfo   bool // If true, collect caller info for ALL levels. If false, only for Error/Critical.
-	CallerSkip          int  // Optional offset to skip more frames (for wrapper libraries)
-	SamplingRate        float64
-	AlwaysCollectCaller bool // (Redundant if we use logic below, let's keep it simple)
+	ProcessID         int
+	ProcessIDStr      string
+	ProcessName       string
+	CollectCallerInfo bool // If true, collect caller info for ALL levels. If false, only for Error/Critical.
+	CallerSkip        int  // Optional offset to skip more frames (for wrapper libraries)
+	SamplingRate      float64
 
-	closeOnce        sync.Once
-	atomicLevel      atomic.Uint32
-	atomicCallerSkip atomic.Int32
-	callerSkipSet    atomic.Bool
+	closeOnce          sync.Once
+	atomicLevel        atomic.Uint32
+	atomicCallerSkip   atomic.Int32
+	callerSkipSet      atomic.Bool
+	atomicSamplingRate atomic.Uint64
+	samplingRateSet    atomic.Bool
 }
 
 // -----------------------------------------------------------------------------
@@ -75,7 +80,6 @@ func (l *LogEngine) getProcessIDStr() string {
 // SetLevel sets the current log level.
 func (l *LogEngine) SetLevel(level models.Level) {
 	l.atomicLevel.Store(uint32(level) + 1)
-	l.Level = level
 }
 
 // GetLevel returns the current log level.
@@ -91,7 +95,6 @@ func (l *LogEngine) GetLevel() models.Level {
 func (l *LogEngine) SetCallerSkip(skip int) {
 	l.atomicCallerSkip.Store(int32(skip))
 	l.callerSkipSet.Store(true)
-	l.CallerSkip = skip
 }
 
 func (l *LogEngine) getCallerSkip() int {
@@ -99,6 +102,20 @@ func (l *LogEngine) getCallerSkip() int {
 		return int(l.atomicCallerSkip.Load())
 	}
 	return l.CallerSkip
+}
+
+// -----------------------------------------------------------------------------
+// SetSamplingRate updates the non-critical log sampling rate atomically.
+func (l *LogEngine) SetSamplingRate(rate float64) {
+	l.atomicSamplingRate.Store(math.Float64bits(rate))
+	l.samplingRateSet.Store(true)
+}
+
+func (l *LogEngine) getSamplingRate() float64 {
+	if l.samplingRateSet.Load() {
+		return math.Float64frombits(l.atomicSamplingRate.Load())
+	}
+	return l.SamplingRate
 }
 
 // -----------------------------------------------------------------------------
@@ -155,24 +172,26 @@ func (l *LogEngine) getEntry(level models.Level, msg string) *models.LogEntry {
 	return e
 }
 
-// -----------------------------------------------------------------------------
-func (l *LogEngine) logInternal(level models.Level, format string, args ...any) {
-	if level < l.GetLevel() {
-		return
+func isOnlyBufferFullErr(err error) bool {
+	if errors.Is(err, sink.ErrBufferFull) {
+		return true
 	}
-
-	// Sampling logic
-	// We only sample non-critical logs (below Warning) if rate is set
-	// Note: 0.0 is treated as 100% (not set) for backward compatibility with zero-initialized structs
-	if l.SamplingRate > 0 && l.SamplingRate < 1.0 && level < models.LevelWarning {
-		if rand.Float64() > l.SamplingRate {
-			return
+	const prefix = "multisink write errors: "
+	msg := err.Error()
+	if !strings.HasPrefix(msg, prefix) {
+		return false
+	}
+	for _, part := range strings.Split(strings.TrimPrefix(msg, prefix), "; ") {
+		if part != sink.ErrBufferFull.Error() {
+			return false
 		}
 	}
+	return true
+}
 
-	msg := fmt.Sprintf(format, args...)
-	e := l.getEntry(level, msg)
-	if err := l.Sink.Write(e); err != nil {
+// -----------------------------------------------------------------------------
+func (l *LogEngine) dispatchEntry(e *models.LogEntry, level models.Level, msg string) {
+	if err := l.Sink.Write(e); err != nil && !isOnlyBufferFullErr(err) {
 		error_handler.ReportInternalError(l.Name, "sink", err, msg)
 	}
 
@@ -182,10 +201,31 @@ func (l *LogEngine) logInternal(level models.Level, format string, args ...any) 
 			Message: msg,
 			Level:   level.String(), // Send the string representation of the level
 		}
-		if err := l.Notifier.Notify(n); err != nil {
+		if err := l.Notifier.Notify(n); err != nil && err.Error() != "no local queue bound" {
 			error_handler.ReportInternalError(l.Name, "notifier", err, msg)
 		}
 	}
+}
+
+// -----------------------------------------------------------------------------
+func (l *LogEngine) logInternal(level models.Level, format string, args ...any) {
+	if level < l.GetLevel() {
+		return
+	}
+
+	// Sampling logic
+	// We only sample non-critical logs (below Warning) if rate is set
+	// Note: 0.0 is treated as 100% (not set) for backward compatibility with zero-initialized structs
+	rate := l.getSamplingRate()
+	if rate > 0 && rate < 1.0 && level < models.LevelWarning {
+		if rand.Float64() > rate {
+			return
+		}
+	}
+
+	msg := fmt.Sprintf(format, args...)
+	e := l.getEntry(level, msg)
+	l.dispatchEntry(e, level, msg)
 }
 
 // -----------------------------------------------------------------------------
@@ -200,8 +240,9 @@ func (l *LogEngine) LogWithCaller(level models.Level, msg, file, line, function,
 	}
 
 	// Sampling logic
-	if l.SamplingRate > 0 && l.SamplingRate < 1.0 && level < models.LevelWarning {
-		if rand.Float64() > l.SamplingRate {
+	rate := l.getSamplingRate()
+	if rate > 0 && rate < 1.0 && level < models.LevelWarning {
+		if rand.Float64() > rate {
 			return
 		}
 	}
@@ -221,7 +262,8 @@ func (l *LogEngine) LogWithCaller(level models.Level, msg, file, line, function,
 
 	// Dynamic Metadata from Explicit Caller Arguments
 	if file != "" {
-		e.Filename = file
+		e.Filename = filepath.Base(file)
+		e.PathName = file
 	} else {
 		e.Filename = "unknown"
 	}
@@ -237,20 +279,7 @@ func (l *LogEngine) LogWithCaller(level models.Level, msg, file, line, function,
 	}
 	e.Module = module
 
-	if err := l.Sink.Write(e); err != nil {
-		error_handler.ReportInternalError(l.Name, "sink", err, msg)
-	}
-
-	// Check for Notification triggers
-	if l.Notifier != nil && level >= models.LevelWarning {
-		n := &models.NotifMessage{
-			Message: msg,
-			Level:   level.String(),
-		}
-		if err := l.Notifier.Notify(n); err != nil {
-			error_handler.ReportInternalError(l.Name, "notifier", err, msg)
-		}
-	}
+	l.dispatchEntry(e, level, msg)
 }
 
 // -----------------------------------------------------------------------------

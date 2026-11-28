@@ -60,3 +60,43 @@ func TestRemoteNotifier_Notify(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 }
+
+// -----------------------------------------------------------------------------
+
+func TestLocalNotifier_BufferFull_IncrementsDroppedCount(t *testing.T) {
+	ln := NewLocalNotifier()
+	ch := make(chan *models.NotifMessage, 1)
+	ln.SetQueue(ch)
+
+	if err := ln.Notify(&models.NotifMessage{Message: "ok"}); err != nil {
+		t.Fatalf("Unexpected error on first Notify: %v", err)
+	}
+	if err := ln.Notify(&models.NotifMessage{Message: "dropped-1"}); err == nil {
+		t.Fatal("Expected error when local queue is full")
+	}
+	if err := ln.Notify(&models.NotifMessage{Message: "dropped-2"}); err == nil {
+		t.Fatal("Expected error when local queue is full")
+	}
+
+	if got := ln.DroppedCount(); got != 2 {
+		t.Fatalf("Expected DroppedCount() == 2, got %d", got)
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+func TestRemoteNotifier_BufferFull_IncrementsDroppedCount(t *testing.T) {
+	rn := &RemoteNotifier{
+		notifChan: make(chan *models.NotifMessage, 1),
+	}
+
+	if err := rn.Notify(&models.NotifMessage{Message: "queued"}); err != nil {
+		t.Fatalf("Expected first Notify into 1-slot buffer to succeed, got: %v", err)
+	}
+	if err := rn.Notify(&models.NotifMessage{Message: "overflow"}); err == nil {
+		t.Fatal("Expected error when RemoteNotifier buffer is full")
+	}
+	if got := rn.DroppedCount(); got != 1 {
+		t.Fatalf("Expected DroppedCount() == 1 on overflow, got %d", got)
+	}
+}
