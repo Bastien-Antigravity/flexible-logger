@@ -203,10 +203,16 @@ func (rn *RemoteNotifier) serialize(n *models.NotifMessage) []byte {
 		return nil
 	}
 
-	// Set Fields
-	_ = notifMsg.SetMessage_(n.Message)
-	_ = notifMsg.SetAttachment(n.Attachment)
-	_ = notifMsg.SetLevel(n.Level)
+	// Set Fields (only populate non-empty text pointers to minimize Cap'n Proto arena allocations)
+	if n.Message != "" {
+		_ = notifMsg.SetMessage_(n.Message)
+	}
+	if n.Attachment != "" {
+		_ = notifMsg.SetAttachment(n.Attachment)
+	}
+	if n.Level != "" {
+		_ = notifMsg.SetLevel(n.Level)
+	}
 
 	// Set Tags
 	if len(n.Tags) > 0 {
